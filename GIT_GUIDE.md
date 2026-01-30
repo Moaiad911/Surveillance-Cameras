@@ -32,7 +32,7 @@ git commit -m "Initial commit: Surveillance Cameras Management System"
 ### Step 3: Connect to GitHub and Push
 ```bash
 # Add your GitHub repository as remote (replace with your actual repository URL)
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+git remote add origin https://github.com/Moaiad911/Surveillance-Cameras.git
 
 # Rename branch to main (if needed)
 git branch -M main
@@ -50,8 +50,8 @@ git push -u origin main
 ### Step 1: Clone the Repository (First Time Only)
 ```bash
 # Clone the repository to your local machine
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+git clone https://github.com/Moaiad911/Surveillance-Cameras.git
+cd Surveillance-Cameras
 ```
 
 ### Step 2: Create a Feature Branch

@@ -23,7 +23,7 @@ const Sidebar = () => {
     { path: '/cameras', icon: Camera, label: 'Cameras' },
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/events', icon: Bell, label: 'Events' },
-    ...(user?.role === 'admin' ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
+    ...(user?.role === 'Admin' ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
     { path: '/settings', icon: Settings, label: 'Settings' },
   ]
 

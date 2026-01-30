@@ -23,11 +23,11 @@ exports.signup = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, salt);
 
         // Create user
-        // Role is optional, defaults to 'User'
+        // Role is optional, defaults to 'Operator'
         const newUser = new User({
             username,
             passwordHash,
-            role: role || 'User'
+            role: role || 'Operator'
         });
 
         await newUser.save();

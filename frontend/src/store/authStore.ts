@@ -1,12 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { authService } from '../services/authService'
 
 interface User {
   id: string
   username: string
-  email: string
-  role: 'admin' | 'operator' | 'viewer'
-  name: string
+  role: 'Admin' | 'Operator'
 }
 
 interface AuthState {
@@ -14,7 +13,7 @@ interface AuthState {
   token: string | null
   isAuthenticated: boolean
   login: (username: string, password: string) => Promise<void>
-  register: (username: string, email: string, password: string, name: string) => Promise<void>
+  register: (username: string, password: string, role?: 'Admin' | 'Operator') => Promise<void>
   logout: () => void
 }
 
@@ -25,46 +24,40 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       login: async (username: string, password: string) => {
-        // Simulate API call
-        // In production, replace with actual API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        // Mock authentication - in production, validate with backend
-        if (username && password) {
-          const mockUser: User = {
-            id: '1',
-            username,
-            email: `${username}@example.com`,
-            role: username === 'admin' ? 'admin' : 'operator',
-            name: username.charAt(0).toUpperCase() + username.slice(1),
-          }
-
+        try {
+          const response = await authService.login({ username, password })
+          
           set({
-            user: mockUser,
-            token: 'mock-jwt-token',
+            user: {
+              id: response.user.id,
+              username: response.user.username,
+              role: response.user.role as 'Admin' | 'Operator',
+            },
+            token: response.token,
             isAuthenticated: true,
           })
-        } else {
-          throw new Error('Invalid credentials')
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Login failed. Please try again.'
+          throw new Error(errorMessage)
         }
       },
-      register: async (username: string, email: string, name: string) => {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-
-        const mockUser: User = {
-          id: Date.now().toString(),
-          username,
-          email,
-          role: 'viewer',
-          name,
+      register: async (username: string, password: string, role?: 'Admin' | 'Operator') => {
+        try {
+          const response = await authService.signup({ username, password, role: role as 'Admin' | 'Operator' | undefined })
+          
+          set({
+            user: {
+              id: response.user.id,
+              username: response.user.username,
+              role: response.user.role as 'Admin' | 'Operator',
+            },
+            token: response.token,
+            isAuthenticated: true,
+          })
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.'
+          throw new Error(errorMessage)
         }
-
-        set({
-          user: mockUser,
-          token: 'mock-jwt-token',
-          isAuthenticated: true,
-        })
       },
       logout: () => {
         set({

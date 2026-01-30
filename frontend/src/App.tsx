@@ -15,7 +15,6 @@ function App() {
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route
           path="/*"
           element={
@@ -29,6 +28,8 @@ function App() {
                   <Route path="/events" element={<Events />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/settings" element={<Settings />} />
+                  {/* Admin-only: User registration */}
+                  <Route path="/register" element={<Register />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>

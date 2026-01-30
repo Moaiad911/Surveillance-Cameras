@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { Camera } from 'lucide-react'
 
@@ -19,8 +19,8 @@ const Login = () => {
     try {
       await login(username, password)
       navigate('/dashboard')
-    } catch (err) {
-      setError('Invalid username or password')
+    } catch (err: any) {
+      setError(err.message || 'Invalid username or password')
     } finally {
       setLoading(false)
     }
@@ -86,10 +86,7 @@ const Login = () => {
 
           <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary-400 hover:text-primary-300 font-medium">
-                Sign up
-              </Link>
+              Contact your administrator for account access
             </p>
           </div>
 
