@@ -24,6 +24,8 @@ mongoose.connect(MONGODB_URI)
 const authRoutes = require('./routes/authRoutes');
 
 app.use('/api/auth', authRoutes);
+const cameraRoutes = require('./routes/cameraRoutes');
+app.use('/api/cameras', cameraRoutes);
 
 app.get('/', (req, res) => {
     res.send('Graduation Project API is running');
