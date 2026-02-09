@@ -1,0 +1,43 @@
+### User Login (Get Token)
+# @name login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "password123"
+}
+
+###
+
+@token = {{login.response.body.token}}
+
+### Create Camera
+POST http://localhost:5000/api/cameras
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Main Entrance",
+    "streamURL": "rtsp://192.168.1.100:554/stream1",
+    "location": "Entrance Hall",
+    "status": "Active"
+}
+
+### Get All Cameras
+GET http://localhost:5000/api/cameras
+Authorization: Bearer {{token}}
+
+### Update Camera (Replace ID with actual ID from Create response)
+PUT http://localhost:5000/api/cameras/REPLACE_WITH_ID
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "name": "Main Entrance Updated",
+    "status": "Inactive"
+}
+
+### Delete Camera (Replace ID with actual ID)
+DELETE http://localhost:5000/api/cameras/REPLACE_WITH_ID
+Authorization: Bearer {{token}}
