@@ -2,10 +2,6 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
 // Register a new user
 exports.signup = async (req, res) => {
     try {
@@ -27,7 +23,6 @@ exports.signup = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, salt);
 
         // Create user
-        // Role is optional, defaults to 'Operator'
         const newUser = new User({
             username,
             passwordHash,
@@ -60,10 +55,6 @@ exports.signup = async (req, res) => {
 };
 
 // Login user
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- */
 exports.login = async (req, res) => {
     try {
         const { username, password } = req.body;
