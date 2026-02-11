@@ -1,7 +1,8 @@
 const CameraModel = require('../models/Camera');
 const { Camera } = require('../entities/Camera');
+const { ICameraRepository } = require('../interface/ICameraRepository');
 
-class MongoCameraRepository {
+class MongoCameraRepository extends ICameraRepository {
     // @ts-ignore
     /**
      * @param {*} doc

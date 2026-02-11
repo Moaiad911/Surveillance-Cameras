@@ -1,7 +1,8 @@
 const UserModel = require('../models/User');
 const User = require("../entities/User");
+const { IUserRepository } = require('../interface/IUserRepository');
 
-class MongoUserRepository {
+class MongoUserRepository extends IUserRepository {
 
     toEntity(doc) {
         return new User(
@@ -42,4 +43,4 @@ class MongoUserRepository {
     }
 }
 
-module.exports = MongoUserRepository;
+module.exports = { MongoUserRepository };
