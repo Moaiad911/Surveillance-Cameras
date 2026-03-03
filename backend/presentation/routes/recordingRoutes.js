@@ -6,6 +6,15 @@ const upload = require('../../infrastructure/multer');
 
 router.use(verifyToken);
 
+const handleUpload = (req, res, next) => {
+    upload.single('video')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ message: err.message });
+        }
+        next();
+    });
+};
+
 /**
  * @swagger
  * /api/recordings/{cameraId}/upload:
@@ -30,15 +39,16 @@ router.use(verifyToken);
  *               video:
  *                 type: string
  *                 format: binary
+ *                 description: Video file only (mp4, avi, mkv, mov)
  *     responses:
  *       201:
  *         description: Recording uploaded successfully
  *       400:
- *         description: No video file provided
+ *         description: No video file provided or invalid file type
  *       404:
  *         description: Camera not found
  */
-router.post('/:cameraId/upload', upload.single('video'), recordingController.uploadRecording);
+router.post('/:cameraId/upload', handleUpload, recordingController.uploadRecording);
 
 /**
  * @swagger
