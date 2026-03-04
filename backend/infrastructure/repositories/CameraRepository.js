@@ -3,6 +3,9 @@ const ICameraRepository = require('../../domain/repositories/ICameraRepository')
 
 class CameraRepository extends ICameraRepository {
     async findById(id, userId) {
+        if (!userId) {
+            return await CameraModel.findById(id);
+        }
         return await CameraModel.findOne({ _id: id, createdBy: userId });
     }
 
