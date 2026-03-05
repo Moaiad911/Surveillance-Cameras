@@ -1,18 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Camera,
-  Bell,
-  Users,
-  Settings,
-  LogOut,
-} from 'lucide-react'
+import { LayoutDashboard, Camera, Bell, Users, Settings, LogOut } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const isAdmin = user?.role === 'Admin'
 
   const handleLogout = () => {
     logout()
@@ -20,17 +14,17 @@ const Sidebar = () => {
   }
 
   const navItems = [
-    { path: '/cameras', icon: Camera, label: 'Cameras' },
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/events', icon: Bell, label: 'Events' },
-    ...(user?.role === 'Admin' ? [{ path: '/users', icon: Users, label: 'Users' }] : []),
-    { path: '/settings', icon: Settings, label: 'Settings' },
-  ]
+    { path: '/cameras', icon: Camera, label: 'Cameras', adminOnly: false },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
+    { path: '/events', icon: Bell, label: 'Events', adminOnly: false },
+    { path: '/users', icon: Users, label: 'Users', adminOnly: true },
+    { path: '/settings', icon: Settings, label: 'Settings', adminOnly: false },
+  ].filter(item => !item.adminOnly || isAdmin)
 
   return (
     <div className="w-64 bg-slate-800 text-white flex flex-col">
       <div className="p-6 border-b border-slate-700">
-        <h1 className="text-xl font-bold text-primary-400">Surveillance System</h1>
+        <h1 className="text-xl font-bold text-blue-400">Surveillance System</h1>
         <p className="text-sm text-slate-400 mt-1">Camera Management</p>
       </div>
 
@@ -43,9 +37,7 @@ const Sidebar = () => {
               to={item.path}
               className={({ isActive }) =>
                 `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700'
+                  isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-700'
                 }`
               }
             >
@@ -58,9 +50,8 @@ const Sidebar = () => {
 
       <div className="p-4 border-t border-slate-700">
         <div className="mb-4 px-4 py-2 bg-slate-700 rounded-lg">
-          <p className="text-sm font-medium">{user?.name}</p>
-          <p className="text-xs text-slate-400">{user?.email}</p>
-          <p className="text-xs text-primary-400 mt-1 capitalize">{user?.role}</p>
+          <p className="text-sm font-medium text-white">{user?.username}</p>
+          <p className="text-xs text-blue-400 mt-1 capitalize">{user?.role}</p>
         </div>
         <button
           onClick={handleLogout}
@@ -75,5 +66,3 @@ const Sidebar = () => {
 }
 
 export default Sidebar
-
-
