@@ -25,8 +25,6 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Navigate to="/cameras" replace />} />
                   <Route path="/cameras" element={<Cameras />} />
-                  <Route path="/cameras/new" element={<AddCamera />} />
-                  <Route path="/cameras/:id/edit" element={<EditCamera />} />
                   <Route path="/cameras/:id" element={<CameraDetail />} />
                   <Route path="/events" element={<Events />} />
                   <Route path="/settings" element={<Settings />} />
@@ -35,6 +33,16 @@ function App() {
                   <Route path="/dashboard" element={
                     <ProtectedRoute adminOnly>
                       <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/cameras/new" element={
+                    <ProtectedRoute adminOnly>
+                      <AddCamera />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/cameras/:id/edit" element={
+                    <ProtectedRoute adminOnly>
+                      <EditCamera />
                     </ProtectedRoute>
                   } />
                   <Route path="/users" element={

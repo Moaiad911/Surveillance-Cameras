@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Camera, Plus, Search, Filter, Trash2 } from 'lucide-react'
 import { cameraService } from '../services/cameraService'
 import type { Camera as CameraType } from '../services/cameraService'
+import { useAuthStore } from '../store/authStore'
 
 const Cameras = () => {
   const [cameras, setCameras] = useState<CameraType[]>([])
@@ -10,6 +11,8 @@ const Cameras = () => {
   const [filter, setFilter] = useState<'all' | 'Active' | 'Inactive'>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'Admin'
 
   useEffect(() => {
     fetchCameras()
@@ -53,13 +56,15 @@ const Cameras = () => {
           <h1 className="text-3xl font-bold text-white mb-2">Cameras</h1>
           <p className="text-slate-400">Manage and monitor all surveillance cameras</p>
         </div>
-        <Link
-          to="/cameras/new"
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Camera</span>
-        </Link>
+        {isAdmin && (
+          <Link
+            to="/cameras/new"
+            className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Camera</span>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -107,12 +112,14 @@ const Cameras = () => {
                   <p className="text-sm text-slate-400">{camera.location}</p>
                 </div>
               </div>
-              <button
-                onClick={(e) => handleDelete(camera._id, e)}
-                className="p-2 hover:bg-red-600 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-5 h-5 text-slate-400 hover:text-white" />
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={(e) => handleDelete(camera._id, e)}
+                  className="p-2 hover:bg-red-600 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-5 h-5 text-slate-400 hover:text-white" />
+                </button>
+              )}
             </div>
 
             <div className="relative w-full h-48 bg-slate-900 rounded-lg mb-4 overflow-hidden">
@@ -148,15 +155,17 @@ const Cameras = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <Link
-                to={`/cameras/${camera._id}/edit`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex-1 text-center py-2 bg-slate-700 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
-              >
-                Edit
-              </Link>
-            </div>
+            {isAdmin && (
+              <div className="mt-4">
+                <Link
+                  to={`/cameras/${camera._id}/edit`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="block text-center py-2 bg-slate-700 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors"
+                >
+                  Edit
+                </Link>
+              </div>
+            )}
           </Link>
         ))}
       </div>
@@ -165,9 +174,11 @@ const Cameras = () => {
         <div className="text-center py-12">
           <Camera className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400 text-lg">No cameras found</p>
-          <Link to="/cameras/new" className="mt-4 inline-block text-blue-400 hover:underline">
-            Add your first camera
-          </Link>
+          {isAdmin && (
+            <Link to="/cameras/new" className="mt-4 inline-block text-blue-400 hover:underline">
+              Add your first camera
+            </Link>
+          )}
         </div>
       )}
     </div>

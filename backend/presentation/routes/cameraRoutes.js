@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const cameraController = require('../controllers/cameraController');
-const { verifyToken } = require('../middleware/authMiddleware');
+const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 router.use(verifyToken);
 
@@ -9,7 +9,7 @@ router.use(verifyToken);
  * @swagger
  * /api/cameras:
  *   post:
- *     summary: Create a new camera
+ *     summary: Create a new camera (Admin only)
  *     tags: [Cameras]
  *     security:
  *       - bearerAuth: []
@@ -44,8 +44,10 @@ router.use(verifyToken);
  *     responses:
  *       201:
  *         description: Camera created successfully
+ *       403:
+ *         description: Admin access required
  */
-router.post('/', cameraController.createCamera);
+router.post('/', requireAdmin, cameraController.createCamera);
 
 /**
  * @swagger
@@ -87,7 +89,7 @@ router.get('/:id', cameraController.getCameraById);
  * @swagger
  * /api/cameras/{id}:
  *   put:
- *     summary: Update a camera
+ *     summary: Update a camera (Admin only)
  *     tags: [Cameras]
  *     security:
  *       - bearerAuth: []
@@ -105,14 +107,16 @@ router.get('/:id', cameraController.getCameraById);
  *     responses:
  *       200:
  *         description: Camera updated successfully
+ *       403:
+ *         description: Admin access required
  */
-router.put('/:id', cameraController.updateCamera);
+router.put('/:id', requireAdmin, cameraController.updateCamera);
 
 /**
  * @swagger
  * /api/cameras/{id}:
  *   delete:
- *     summary: Delete a camera
+ *     summary: Delete a camera (Admin only)
  *     tags: [Cameras]
  *     security:
  *       - bearerAuth: []
@@ -125,7 +129,9 @@ router.put('/:id', cameraController.updateCamera);
  *     responses:
  *       200:
  *         description: Camera deleted successfully
+ *       403:
+ *         description: Admin access required
  */
-router.delete('/:id', cameraController.deleteCamera);
+router.delete('/:id', requireAdmin, cameraController.deleteCamera);
 
 module.exports = router;
