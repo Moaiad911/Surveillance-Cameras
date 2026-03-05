@@ -24,6 +24,7 @@ app.use('/api/cameras', require('./presentation/routes/cameraRoutes'));
 app.use('/api/users', require('./presentation/routes/userRoutes'));
 app.use('/api/recordings', require('./presentation/routes/recordingRoutes'));
 app.use('/api/dashboard', require('./presentation/routes/dashboardRoutes'));
+app.use('/api/profile', require('./presentation/routes/profileRoutes'));
 
 app.get('/', (req, res) => {
     res.send('Surveillance Cameras API is running');

@@ -15,6 +15,7 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [roleMsg, setRoleMsg] = useState({ id: '', text: '', error: false })
 
   useEffect(() => {
     fetchUsers()
@@ -25,7 +26,7 @@ const Users = () => {
       setLoading(true)
       const res = await api.get('/users')
       setUsers(res.data)
-    } catch (err: any) {
+    } catch {
       setError('Failed to load users')
     } finally {
       setLoading(false)
@@ -37,24 +38,26 @@ const Users = () => {
     try {
       await api.delete(`/users/${id}`)
       setUsers(users.filter(u => u._id !== id))
-    } catch (err) {
+    } catch {
       alert('Failed to delete user')
+    }
+  }
+
+  const handleRoleChange = async (id: string, newRole: 'Admin' | 'Operator') => {
+    setRoleMsg({ id, text: '', error: false })
+    try {
+      await api.put(`/profile/role/${id}`, { role: newRole })
+      setUsers(users.map(u => u._id === id ? { ...u, role: newRole } : u))
+      setRoleMsg({ id, text: 'Role updated!', error: false })
+      setTimeout(() => setRoleMsg({ id: '', text: '', error: false }), 2000)
+    } catch (err: any) {
+      setRoleMsg({ id, text: err.response?.data?.message || 'Failed to update role', error: true })
     }
   }
 
   const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
   )
-
-  const getRoleIcon = (role: string) => {
-    return role === 'Admin' ? Shield : Settings
-  }
-
-  const getRoleColor = (role: string) => {
-    return role === 'Admin'
-      ? 'bg-red-500/20 text-red-400 border-red-500/50'
-      : 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-  }
 
   return (
     <div className="space-y-6">
@@ -94,13 +97,14 @@ const Users = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">User</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Change Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Created At</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
                 {filteredUsers.map((user) => {
-                  const RoleIcon = getRoleIcon(user.role)
+                  const RoleIcon = user.role === 'Admin' ? Shield : Settings
                   return (
                     <tr key={user._id} className="hover:bg-slate-700/30 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -114,9 +118,30 @@ const Users = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <RoleIcon className="w-4 h-4 text-slate-400" />
-                          <span className={`px-2 py-1 rounded text-xs font-medium border ${getRoleColor(user.role)}`}>
+                          <span className={`px-2 py-1 rounded text-xs font-medium border ${
+                            user.role === 'Admin'
+                              ? 'bg-red-500/20 text-red-400 border-red-500/50'
+                              : 'bg-blue-500/20 text-blue-400 border-blue-500/50'
+                          }`}>
                             {user.role}
                           </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <select
+                            value={user.role}
+                            onChange={(e) => handleRoleChange(user._id, e.target.value as 'Admin' | 'Operator')}
+                            className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="Admin">Admin</option>
+                            <option value="Operator">Operator</option>
+                          </select>
+                          {roleMsg.id === user._id && roleMsg.text && (
+                            <span className={`text-xs ${roleMsg.error ? 'text-red-400' : 'text-green-400'}`}>
+                              {roleMsg.text}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
