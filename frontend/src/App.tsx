@@ -9,6 +9,7 @@ import EditCamera from './pages/EditCamera'
 import Events from './pages/Events'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
+import Profile from './pages/Profile'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -28,32 +29,23 @@ function App() {
                   <Route path="/cameras/:id" element={<CameraDetail />} />
                   <Route path="/events" element={<Events />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<Profile />} />
 
-                  {/* Admin only routes */}
+                  {/* Admin only */}
                   <Route path="/dashboard" element={
-                    <ProtectedRoute adminOnly>
-                      <Dashboard />
-                    </ProtectedRoute>
+                    <ProtectedRoute adminOnly><Dashboard /></ProtectedRoute>
                   } />
                   <Route path="/cameras/new" element={
-                    <ProtectedRoute adminOnly>
-                      <AddCamera />
-                    </ProtectedRoute>
+                    <ProtectedRoute adminOnly><AddCamera /></ProtectedRoute>
                   } />
                   <Route path="/cameras/:id/edit" element={
-                    <ProtectedRoute adminOnly>
-                      <EditCamera />
-                    </ProtectedRoute>
+                    <ProtectedRoute adminOnly><EditCamera /></ProtectedRoute>
                   } />
                   <Route path="/users" element={
-                    <ProtectedRoute adminOnly>
-                      <Users />
-                    </ProtectedRoute>
+                    <ProtectedRoute adminOnly><Users /></ProtectedRoute>
                   } />
                   <Route path="/register" element={
-                    <ProtectedRoute adminOnly>
-                      <Register />
-                    </ProtectedRoute>
+                    <ProtectedRoute adminOnly><Register /></ProtectedRoute>
                   } />
                 </Routes>
               </Layout>
