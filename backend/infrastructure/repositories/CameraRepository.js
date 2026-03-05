@@ -9,6 +9,10 @@ class CameraRepository extends ICameraRepository {
         return await CameraModel.findOne({ _id: id, createdBy: userId });
     }
 
+    async findAll() {
+        return await CameraModel.find();
+    }
+
     async findAllByUser(userId) {
         return await CameraModel.find({ createdBy: userId });
     }
