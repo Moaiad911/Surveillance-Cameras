@@ -1,46 +1,40 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
-require('dotenv').config();
+const dotenv = require('dotenv');
 
-// Database Connection
+dotenv.config();
+
+const UserModel = require('../infrastructure/models/UserModel');
+
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/graduation_project';
 
-async function createAdmin() {
+const createAdmin = async () => {
     try {
-        // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
         console.log('✅ Connected to MongoDB');
 
-        // Check if admin already exists
-        const existingAdmin = await User.findOne({ username: 'admin' });
-        if (existingAdmin) {
-            console.log('❌ Admin user already exists!');
-            process.exit(1);
+        const existing = await UserModel.findOne({ username: 'admin' });
+        if (existing) {
+            console.log('ℹ️  Admin user already exists');
+            process.exit(0);
         }
 
-        // Create admin user
-        const password = 'admin123'; // Default password - change this!
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(password, salt);
+        const passwordHash = await bcrypt.hash('admin123', 10);
 
-        const admin = new User({
+        await UserModel.create({
             username: 'admin',
-            passwordHash: passwordHash,
+            passwordHash,
             role: 'Admin'
         });
 
-        await admin.save();
-        console.log('✅ Admin user created successfully!');
-        console.log('📝 Username: admin');
+        console.log('✅ Admin user created successfully');
+        console.log('👤 Username: admin');
         console.log('🔑 Password: admin123');
-        console.log('⚠️  Please change the password after first login!');
-
         process.exit(0);
-    } catch (error) {
-        console.error('❌ Error creating admin:', error);
+    } catch (err) {
+        console.error('❌ Error:', err);
         process.exit(1);
     }
-}
+};
 
 createAdmin();

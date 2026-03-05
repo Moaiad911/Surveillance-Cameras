@@ -1,9 +1,11 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger/swagger');
+const connectDB = require('./infrastructure/database/mongoose');
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -13,25 +15,26 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/graduation_project';
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ Connected to MongoDB'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+// Connect to Database
+connectDB();
+
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-
-app.use('/api/auth', authRoutes);
-const cameraRoutes = require('./routes/cameraRoutes');
-app.use('/api/cameras', cameraRoutes);
+app.use('/api/auth', require('./presentation/routes/authRoutes'));
+app.use('/api/cameras', require('./presentation/routes/cameraRoutes'));
+app.use('/api/users', require('./presentation/routes/userRoutes'));
+app.use('/api/recordings', require('./presentation/routes/recordingRoutes'));
 
 app.get('/', (req, res) => {
-    res.send('Graduation Project API is running');
+    res.send('Surveillance Cameras API is running');
 });
 
-// Start Server
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📚 Swagger UI available at http://localhost:${PORT}/api-docs`);
 });
