@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Camera, Bell, Users, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Camera, Bell, Users, Settings, LogOut, Video } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,6 +15,7 @@ const Sidebar = () => {
 
   const navItems = [
     { path: '/cameras', icon: Camera, label: 'Cameras', adminOnly: false },
+    { path: '/recordings', icon: Video, label: 'Recordings', adminOnly: false },
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
     { path: '/events', icon: Bell, label: 'Events', adminOnly: false },
     { path: '/users', icon: Users, label: 'Users', adminOnly: true },
