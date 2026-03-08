@@ -7,6 +7,7 @@ import CameraDetail from './pages/CameraDetail'
 import AddCamera from './pages/AddCamera'
 import EditCamera from './pages/EditCamera'
 import Events from './pages/Events'
+import Recordings from './pages/Recordings'
 import Users from './pages/Users'
 import Settings from './pages/Settings'
 import Profile from './pages/Profile'
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/cameras/:id/edit" element={
                     <ProtectedRoute adminOnly><EditCamera /></ProtectedRoute>
                   } />
+                  <Route path="/recordings" element={<Recordings />} />
                   <Route path="/users" element={
                     <ProtectedRoute adminOnly><Users /></ProtectedRoute>
                   } />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Settings, Download, Share2, Play, Pause, Volume2, Maximize } from 'lucide-react'
 
 interface CameraDetails {
@@ -17,6 +17,7 @@ interface CameraDetails {
 
 const CameraDetail = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [camera, setCamera] = useState<CameraDetails | null>(null)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -176,7 +177,10 @@ const CameraDetail = () => {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
             <div className="space-y-2">
-              <button className="w-full text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-white">
+              <button 
+                onClick={() => navigate(`/recordings?camera=${camera.id}`)}
+                className="w-full text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-white"
+              >
                 View Recordings
               </button>
               <button className="w-full text-left px-4 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-white">
