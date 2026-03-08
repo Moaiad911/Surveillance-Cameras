@@ -9,17 +9,10 @@ export interface Recording {
   cameraId: string
   uploadedBy: string
   createdAt: string
-  duration?: number
-  resolution?: string
-  frameRate?: number
+  updatedAt: string
 }
 
-export interface RecordingStats {
-  totalRecordings: number
-  totalSize: number
-  oldestRecording: string | null
-  newestRecording: string | null
-}
+const BASE_URL = 'http://localhost:5000'
 
 export const recordingService = {
   getByCamera: async (cameraId: string): Promise<Recording[]> => {
@@ -27,28 +20,14 @@ export const recordingService = {
     return res.data
   },
 
-  getAll: async (): Promise<Recording[]> => {
-    const res = await api.get('/recordings')
-    return res.data
-  },
-
-  getStats: async (): Promise<RecordingStats> => {
-    const res = await api.get('/recordings/stats')
-    return res.data
-  },
-
   upload: async (cameraId: string, file: File, onProgress?: (progress: number) => void): Promise<Recording> => {
     const formData = new FormData()
     formData.append('video', file)
-
     const res = await api.post(`/recordings/${cameraId}/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          onProgress(progress)
+          onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total))
         }
       },
     })
@@ -59,21 +38,17 @@ export const recordingService = {
     await api.delete(`/recordings/${id}`)
   },
 
-  download: async (id: string, filename: string): Promise<void> => {
-    const res = await api.get(`/recordings/${id}/download`, {
-      responseType: 'blob',
-    })
-    const url = window.URL.createObjectURL(new Blob([res.data]))
+  download: (recording: Recording): void => {
+    const url = `${BASE_URL}/${recording.path.replace(/\\/g, '/')}`
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', filename)
+    link.setAttribute('download', recording.originalName)
     document.body.appendChild(link)
     link.click()
     link.remove()
-    window.URL.revokeObjectURL(url)
   },
 
-  getVideoUrl: (id: string): string => {
-    return `${import.meta.env.VITE_API_URL || '/api'}/recordings/${id}/stream`
+  getVideoUrl: (recording: Recording): string => {
+    return `${BASE_URL}/${recording.path.replace(/\\/g, '/')}`
   },
 }
