@@ -10,6 +10,9 @@ export interface Recording {
   uploadedBy: string
   createdAt: string
   updatedAt: string
+  duration?: number
+  resolution?: string
+  frameRate?: number
 }
 
 const BASE_URL = 'http://localhost:5000'

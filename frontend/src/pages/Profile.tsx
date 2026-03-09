@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore'
 const Profile = () => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const isAdmin = user?.role === 'Admin'
+
 
   const [profile, setProfile] = useState({ username: '', role: '', createdAt: '' })
   const [usernameForm, setUsernameForm] = useState({ username: '' })

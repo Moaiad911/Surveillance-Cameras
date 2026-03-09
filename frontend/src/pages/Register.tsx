@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { Camera, Shield } from 'lucide-react'
+import { Shield } from 'lucide-react'
 
 const Register = () => {
   const { user } = useAuthStore()
