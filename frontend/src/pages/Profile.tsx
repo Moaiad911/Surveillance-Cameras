@@ -88,7 +88,7 @@ const Profile = () => {
       <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-            {profile.username?.charAt(0).toUpperCase()}
+            {(profile.username || user?.username)?.charAt(0).toUpperCase()}
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{profile.username}</h2>
