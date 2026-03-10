@@ -39,12 +39,12 @@ const AddCamera = () => {
     name: '',
     model: '',
     ipAddress: '',
-    streamUrl: '',
+    streamURL: '',
     location: '',
     resolution: '1920x1080',
     frameRate: '30',
     status: 'Active',
-    recordingEnabled: true,
+    recording: true,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -66,8 +66,8 @@ const AddCamera = () => {
     if (!form.model) newErrors.model = 'Model is required'
     if (!form.ipAddress.trim()) newErrors.ipAddress = 'IP Address is required'
     else if (!validateIP(form.ipAddress)) newErrors.ipAddress = 'Invalid IP address format (e.g. 192.168.1.100)'
-    if (!form.streamUrl.trim()) newErrors.streamUrl = 'Stream URL is required'
-    else if (!validateStreamUrl(form.streamUrl)) newErrors.streamUrl = 'URL must start with rtsp:// or http(s)://'
+    if (!form.streamURL.trim()) newErrors.streamUrl = 'Stream URL is required'
+    else if (!validateStreamUrl(form.streamURL)) newErrors.streamUrl = 'URL must start with rtsp:// or http(s)://'
     if (!form.location) newErrors.location = 'Location is required'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -136,7 +136,7 @@ const AddCamera = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Stream URL *</label>
-            <input value={form.streamUrl} onChange={e => setForm(p => ({ ...p, streamUrl: e.target.value }))}
+            <input value={form.streamURL} onChange={e => setForm(p => ({ ...p, streamURL: e.target.value }))}
               className={inputClass('streamUrl')} placeholder="e.g. rtsp://192.168.1.100/stream" />
             {errors.streamUrl && <p className="text-red-400 text-xs mt-1">{errors.streamUrl}</p>}
           </div>
@@ -182,8 +182,8 @@ const AddCamera = () => {
         </div>
 
         <div className="flex items-center space-x-3 pt-2">
-          <input type="checkbox" id="recording" checked={form.recordingEnabled}
-            onChange={e => setForm(p => ({ ...p, recordingEnabled: e.target.checked }))}
+          <input type="checkbox" id="recording" checked={form.recording}
+            onChange={e => setForm(p => ({ ...p, recording: e.target.checked }))}
             className="w-4 h-4 text-blue-600 rounded" />
           <label htmlFor="recording" className="text-sm text-slate-400">Enable Recording</label>
         </div>
