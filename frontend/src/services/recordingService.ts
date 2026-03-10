@@ -15,7 +15,7 @@ export interface Recording {
   frameRate?: number
 }
 
-const BASE_URL = 'http://localhost:5000'
+const BASE_URL = '';
 
 export const recordingService = {
   getByCamera: async (cameraId: string): Promise<Recording[]> => {

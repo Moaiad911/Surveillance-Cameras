@@ -1,32 +1,22 @@
 const multer = require('multer');
-const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/recordings/');
-    },
-    filename: (req, file, cb) => {
-        const uniqueName = `recording-${Date.now()}${path.extname(file.originalname)}`;
-        cb(null, uniqueName);
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/x-matroska', 'video/quicktime'];
-    const allowedExtensions = ['.mp4', '.avi', '.mkv', '.mov'];
-    const ext = path.extname(file.originalname).toLowerCase();
-
-    if (allowedTypes.includes(file.mimetype) && allowedExtensions.includes(ext)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only video files are allowed (mp4, avi, mkv, mov)'), false);
-    }
-};
-
-const upload = multer({
-    storage,
-    fileFilter,
-    limits: { fileSize: 500 * 1024 * 1024 } // 500MB max
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'surveillance-recordings',
+    resource_type: 'video',
+    allowed_formats: ['mp4', 'avi', 'mkv', 'mov'],
+  },
 });
 
-module.exports = upload;
+const upload = multer({ storage });
+
+module.exports = { upload, cloudinary };
