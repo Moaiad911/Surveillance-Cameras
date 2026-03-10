@@ -7,7 +7,7 @@ import { useAuthStore } from '../store/authStore'
 const Profile = () => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
-
+  const isAdmin = user?.role === 'Admin'
 
   const [profile, setProfile] = useState({ username: '', role: '', createdAt: '' })
   const [usernameForm, setUsernameForm] = useState({ username: '' })
@@ -48,7 +48,6 @@ const Profile = () => {
   const handlePasswordSubmit = async (e: React.MouseEvent) => {
     e.preventDefault()
     setPasswordMsg({ text: '', error: false })
-
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setPasswordMsg({ text: 'New passwords do not match', error: true })
       return
@@ -57,7 +56,6 @@ const Profile = () => {
       setPasswordMsg({ text: 'Password must be at least 6 characters', error: true })
       return
     }
-
     try {
       await api.put('/profile', {
         currentPassword: passwordForm.currentPassword,
@@ -106,96 +104,106 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Change Username */}
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 space-y-4">
-        <div className="flex items-center space-x-3 mb-4">
-          <User className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Change Username</h3>
+      {/* Admin Only Notice for Operators */}
+      {!isAdmin && (
+        <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-4 flex items-center space-x-3">
+          <Shield className="w-5 h-5 text-yellow-400 flex-shrink-0" />
+          <p className="text-yellow-400 text-sm">
+            Only administrators can modify account credentials. Contact your admin to make changes.
+          </p>
         </div>
+      )}
 
-        {usernameMsg.text && (
-          <div className={`px-4 py-3 rounded-lg text-sm ${
-            usernameMsg.error
-              ? 'bg-red-500/10 border border-red-500 text-red-400'
-              : 'bg-green-500/10 border border-green-500 text-green-400'
-          }`}>
-            {usernameMsg.text}
+      {/* Change Username - Admin Only */}
+      {isAdmin && (
+        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 space-y-4">
+          <div className="flex items-center space-x-3 mb-4">
+            <User className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">Change Username</h3>
           </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1">New Username</label>
-          <input
-            value={usernameForm.username}
-            onChange={(e) => setUsernameForm({ username: e.target.value })}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter new username"
-          />
-        </div>
-        <button
-          onClick={handleUsernameSubmit}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          <Shield className="w-4 h-4" />
-          <span>Update Username</span>
-        </button>
-      </div>
-
-      {/* Change Password */}
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 space-y-4">
-        <div className="flex items-center space-x-3 mb-4">
-          <Lock className="w-5 h-5 text-blue-400" />
-          <h3 className="text-lg font-semibold text-white">Change Password</h3>
-        </div>
-
-        {passwordMsg.text && (
-          <div className={`px-4 py-3 rounded-lg text-sm ${
-            passwordMsg.error
-              ? 'bg-red-500/10 border border-red-500 text-red-400'
-              : 'bg-green-500/10 border border-green-500 text-green-400'
-          }`}>
-            {passwordMsg.text}
+          {usernameMsg.text && (
+            <div className={`px-4 py-3 rounded-lg text-sm ${
+              usernameMsg.error
+                ? 'bg-red-500/10 border border-red-500 text-red-400'
+                : 'bg-green-500/10 border border-green-500 text-green-400'
+            }`}>
+              {usernameMsg.text}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1">New Username</label>
+            <input
+              value={usernameForm.username}
+              onChange={(e) => setUsernameForm({ username: e.target.value })}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter new username"
+            />
           </div>
-        )}
+          <button
+            onClick={handleUsernameSubmit}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Update Username</span>
+          </button>
+        </div>
+      )}
 
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1">Current Password</label>
-          <input
-            type="password"
-            value={passwordForm.currentPassword}
-            onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter current password"
-          />
+      {/* Change Password - Admin Only */}
+      {isAdmin && (
+        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 space-y-4">
+          <div className="flex items-center space-x-3 mb-4">
+            <Lock className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-semibold text-white">Change Password</h3>
+          </div>
+          {passwordMsg.text && (
+            <div className={`px-4 py-3 rounded-lg text-sm ${
+              passwordMsg.error
+                ? 'bg-red-500/10 border border-red-500 text-red-400'
+                : 'bg-green-500/10 border border-green-500 text-green-400'
+            }`}>
+              {passwordMsg.text}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Current Password</label>
+            <input
+              type="password"
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter current password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1">New Password</label>
+            <input
+              type="password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter new password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Confirm New Password</label>
+            <input
+              type="password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Confirm new password"
+            />
+          </div>
+          <button
+            onClick={handlePasswordSubmit}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Update Password</span>
+          </button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1">New Password</label>
-          <input
-            type="password"
-            value={passwordForm.newPassword}
-            onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter new password"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-400 mb-1">Confirm New Password</label>
-          <input
-            type="password"
-            value={passwordForm.confirmPassword}
-            onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Confirm new password"
-          />
-        </div>
-        <button
-          onClick={handlePasswordSubmit}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          <Lock className="w-4 h-4" />
-          <span>Update Password</span>
-        </button>
-      </div>
+      )}
     </div>
   )
 }
