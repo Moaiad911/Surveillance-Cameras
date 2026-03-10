@@ -42,7 +42,7 @@ const AddCamera = () => {
     streamURL: '',
     location: '',
     resolution: '1920x1080',
-    frameRate: '30',
+    frameRate: 30,
     status: 'Active',
     recording: true,
   })
@@ -164,7 +164,7 @@ const AddCamera = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Frame Rate *</label>
-            <select value={form.frameRate} onChange={e => setForm(p => ({ ...p, frameRate: e.target.value }))}
+            <select value={form.frameRate} onChange={e => setForm(p => ({ ...p, frameRate: Number(e.target.value) }))}
               className={inputClass('frameRate')}>
               {FRAME_RATES.map(f => <option key={f} value={f}>{f} FPS</option>)}
             </select>
