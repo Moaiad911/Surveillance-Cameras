@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { Users as UsersIcon, Plus, Search, Shield, Settings, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Trash2, Shield, Edit, X, Eye, EyeOff } from 'lucide-react'
 import api from '../lib/api'
 
 interface User {
   _id: string
   username: string
-  role: 'Admin' | 'Operator'
+  role: string
   createdAt: string
 }
 
 const Users = () => {
   const [users, setUsers] = useState<User[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [roleMsg, setRoleMsg] = useState({ id: '', text: '', error: false })
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState({ username: '', password: '', role: '' })
+  const [showPassword, setShowPassword] = useState(false)
+  const [editMsg, setEditMsg] = useState({ text: '', error: false })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchUsers()
@@ -23,151 +24,209 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      setLoading(true)
       const res = await api.get('/users')
       setUsers(res.data)
-    } catch {
-      setError('Failed to load users')
+    } catch (err) {
+      console.error('Failed to fetch users')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDelete = async (id: string, username: string) => {
-    if (!confirm(`Are you sure you want to delete user "${username}"?`)) return
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return
     try {
       await api.delete(`/users/${id}`)
-      setUsers(users.filter(u => u._id !== id))
-    } catch {
-      alert('Failed to delete user')
+      setUsers(prev => prev.filter(u => u._id !== id))
+    } catch (err) {
+      console.error('Failed to delete user')
     }
   }
 
-  const handleRoleChange = async (id: string, newRole: 'Admin' | 'Operator') => {
-    setRoleMsg({ id, text: '', error: false })
+  const handleRoleChange = async (id: string, role: string) => {
     try {
-      await api.put(`/profile/role/${id}`, { role: newRole })
-      setUsers(users.map(u => u._id === id ? { ...u, role: newRole } : u))
-      setRoleMsg({ id, text: 'Role updated!', error: false })
-      setTimeout(() => setRoleMsg({ id: '', text: '', error: false }), 2000)
-    } catch (err: any) {
-      setRoleMsg({ id, text: err.response?.data?.message || 'Failed to update role', error: true })
+      await api.put(`/profile/role/${id}`, { role })
+      setUsers(prev => prev.map(u => u._id === id ? { ...u, role } : u))
+    } catch (err) {
+      console.error('Failed to update role')
     }
   }
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const openEdit = (user: User) => {
+    setEditUser(user)
+    setEditForm({ username: user.username, password: '', role: user.role })
+    setEditMsg({ text: '', error: false })
+    setShowPassword(false)
+  }
+
+  const handleEditSubmit = async () => {
+    if (!editUser) return
+    setSaving(true)
+    setEditMsg({ text: '', error: false })
+    try {
+      const body: any = { role: editForm.role }
+      if (editForm.username !== editUser.username) body.username = editForm.username
+      if (editForm.password) body.password = editForm.password
+
+      await api.put(`/users/${editUser._id}`, body)
+      setUsers(prev => prev.map(u => u._id === editUser._id ? { ...u, username: editForm.username, role: editForm.role } : u))
+      setEditMsg({ text: 'User updated successfully!', error: false })
+      setTimeout(() => setEditUser(null), 1000)
+    } catch (err: any) {
+      setEditMsg({ text: err.response?.data?.message || 'Failed to update user', error: true })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <p className="text-slate-400 text-center py-12">Loading...</p>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Users</h1>
-          <p className="text-slate-400">Manage system users and permissions</p>
-        </div>
-        <Link
-          to="/register"
-          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add User</span>
-        </Link>
+      <div>
+        <h1 className="text-3xl font-bold text-white">Users</h1>
+        <p className="text-slate-400">Manage system users and permissions</p>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+      <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-slate-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase">User</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase">Joined</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700">
+            {users.map(user => (
+              <tr key={user._id} className="hover:bg-slate-700/50 transition-colors">
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-white font-medium">{user.username}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <select
+                    value={user.role}
+                    onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                    className="bg-slate-700 text-white text-sm rounded px-2 py-1 border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="Admin">Admin</option>
+                    <option value="Operator">Operator</option>
+                  </select>
+                </td>
+                <td className="px-6 py-4 text-slate-400 text-sm">
+                  {new Date(user.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => openEdit(user)}
+                      className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                      title="Edit user"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user._id)}
+                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                      title="Delete user"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {loading && <p className="text-slate-400 text-center py-12">Loading users...</p>}
-      {error && <p className="text-red-400 text-center py-12">{error}</p>}
+      {/* Edit Modal */}
+      {editUser && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-blue-400" />
+                <h2 className="text-lg font-semibold text-white">Edit User</h2>
+              </div>
+              <button onClick={() => setEditUser(null)} className="p-1 hover:bg-slate-700 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-      {!loading && (
-        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-700/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Change Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider">Created At</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-300 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700">
-                {filteredUsers.map((user) => {
-                  const RoleIcon = user.role === 'Admin' ? Shield : Settings
-                  return (
-                    <tr key={user._id} className="hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold mr-3">
-                            {user.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="text-sm font-medium text-white">{user.username}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <RoleIcon className="w-4 h-4 text-slate-400" />
-                          <span className={`px-2 py-1 rounded text-xs font-medium border ${
-                            user.role === 'Admin'
-                              ? 'bg-red-500/20 text-red-400 border-red-500/50'
-                              : 'bg-blue-500/20 text-blue-400 border-blue-500/50'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <select
-                            value={user.role}
-                            onChange={(e) => handleRoleChange(user._id, e.target.value as 'Admin' | 'Operator')}
-                            className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="Admin">Admin</option>
-                            <option value="Operator">Operator</option>
-                          </select>
-                          {roleMsg.id === user._id && roleMsg.text && (
-                            <span className={`text-xs ${roleMsg.error ? 'text-red-400' : 'text-green-400'}`}>
-                              {roleMsg.text}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          onClick={() => handleDelete(user._id, user.username)}
-                          className="p-2 hover:bg-red-600 rounded-lg transition-colors group"
-                        >
-                          <Trash2 className="w-5 h-5 text-slate-400 group-hover:text-white" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            {editMsg.text && (
+              <div className={`px-4 py-3 rounded-lg text-sm ${
+                editMsg.error
+                  ? 'bg-red-500/10 border border-red-500 text-red-400'
+                  : 'bg-green-500/10 border border-green-500 text-green-400'
+              }`}>
+                {editMsg.text}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">Username</label>
+              <input
+                value={editForm.username}
+                onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">New Password <span className="text-slate-500">(leave blank to keep current)</span></label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={editForm.password}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                  placeholder="Enter new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1">Role</label>
+              <select
+                value={editForm.role}
+                onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="Admin">Admin</option>
+                <option value="Operator">Operator</option>
+              </select>
+            </div>
+
+            <div className="flex space-x-3 pt-2">
+              <button
+                onClick={() => setEditUser(null)}
+                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSubmit}
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {!loading && filteredUsers.length === 0 && (
-        <div className="text-center py-12">
-          <UsersIcon className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 text-lg">No users found</p>
         </div>
       )}
     </div>
