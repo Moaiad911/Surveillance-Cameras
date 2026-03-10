@@ -43,7 +43,7 @@ const AddCamera = () => {
     location: '',
     resolution: '1920x1080',
     frameRate: 30,
-    status: 'Active',
+    status: 'Active' as 'Active' | 'Inactive',
     recording: true,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -172,7 +172,7 @@ const AddCamera = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-400 mb-1">Status</label>
-            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as 'Active' | 'Inactive' }))}
               className={inputClass('status')}>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
