@@ -13,15 +13,22 @@ const startStream = (cameraId, streamUrl) => {
   const outputPath = path.join(outputDir, 'index.m3u8');
 
   const ffmpeg = spawn('ffmpeg', [
+    '-f', 'v4l2',
+    '-framerate', '30',
+    '-video_size', '1280x720',
     '-i', streamUrl,
     '-c:v', 'libx264',
     '-preset', 'ultrafast',
     '-tune', 'zerolatency',
-    '-c:a', 'aac',
+    '-x264-params', 'keyint=30:min-keyint=30:scenecut=0',
+    '-b:v', '1000k',
+    '-bufsize', '500k',
+    '-maxrate', '1000k',
     '-f', 'hls',
-    '-hls_time', '2',
-    '-hls_list_size', '5',
-    '-hls_flags', 'delete_segments',
+    '-hls_time', '0.5',
+    '-hls_list_size', '3',
+    '-hls_flags', 'delete_segments+independent_segments',
+    '-hls_segment_type', 'mpegts',
     outputPath
   ]);
 
@@ -32,7 +39,6 @@ const startStream = (cameraId, streamUrl) => {
   ffmpeg.on('close', (code) => {
     console.log(`Stream ${cameraId} ended with code ${code}`);
     activeStreams.delete(cameraId);
-    // cleanup
     if (fs.existsSync(outputDir)) {
       fs.rmSync(outputDir, { recursive: true, force: true });
     }
