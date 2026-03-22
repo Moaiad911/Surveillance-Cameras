@@ -55,7 +55,7 @@ const WebRTCStream = ({ cameraId, cameraName }: Props) => {
               socket.emit('createTransport', { cameraId }, async (transportParams: any) => {
                 if (transportParams.error) { setError(transportParams.error); setStatus('error'); return }
 
-                const transport = device.createRecvTransport(transportParams)
+                const transport = device.createRecvTransport({ ...transportParams, iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] })
 
                 transport.on('connect', ({ dtlsParameters }, callback) => {
                   socket.emit('connectTransport', { dtlsParameters }, callback)
