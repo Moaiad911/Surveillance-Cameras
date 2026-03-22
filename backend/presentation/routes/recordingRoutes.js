@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const recordingController = require('../controllers/recordingController');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
-const upload = require('../../infrastructure/multer');
+const { upload } = require('../../infrastructure/multer');
 
 router.use(verifyToken);
 
