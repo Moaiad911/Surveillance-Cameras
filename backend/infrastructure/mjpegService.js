@@ -1,13 +1,40 @@
 const { spawn } = require('child_process');
+const os = require('os');
 
 const activeStreams = new Map();
 
+const getInputArgs = (streamUrl) => {
+  const platform = os.platform();
+  
+  // IP Camera (RTSP)
+  if (streamUrl.startsWith('rtsp://') || streamUrl.startsWith('http://')) {
+    return ['-i', streamUrl];
+  }
+
+  // Linux webcam
+  if (platform === 'linux') {
+    return ['-f', 'v4l2', '-framerate', '30', '-video_size', '1280x720', '-i', streamUrl];
+  }
+
+  // Windows webcam
+  if (platform === 'win32') {
+    const deviceName = streamUrl.startsWith('/dev/') ? 'Integrated Camera' : streamUrl;
+    return ['-f', 'dshow', '-i', `video=${deviceName}`];
+  }
+
+  // Mac webcam
+  if (platform === 'darwin') {
+    return ['-f', 'avfoundation', '-framerate', '30', '-i', '0'];
+  }
+
+  return ['-i', streamUrl];
+};
+
 const startMJPEG = (res, cameraId, streamUrl) => {
-  // Stop existing stream if any
   if (activeStreams.has(cameraId)) {
-    const old = activeStreams.get(cameraId)
-    old.ffmpeg.kill('SIGTERM')
-    activeStreams.delete(cameraId)
+    const old = activeStreams.get(cameraId);
+    old.ffmpeg.kill('SIGTERM');
+    activeStreams.delete(cameraId);
   }
 
   res.writeHead(200, {
@@ -17,10 +44,7 @@ const startMJPEG = (res, cameraId, streamUrl) => {
     'Pragma': 'no-cache',
   });
 
-  const isDevice = streamUrl.startsWith('/dev/')
-  const inputArgs = isDevice
-    ? ['-f', 'v4l2', '-framerate', '30', '-video_size', '1280x720', '-i', streamUrl]
-    : ['-i', streamUrl]
+  const inputArgs = getInputArgs(streamUrl);
 
   const ffmpeg = spawn('ffmpeg', [
     ...inputArgs,
@@ -49,6 +73,10 @@ const startMJPEG = (res, cameraId, streamUrl) => {
         } catch (e) { ffmpeg.kill(); }
       } else { break; }
     }
+  });
+
+  ffmpeg.stderr.on('data', (data) => {
+    console.log(`[MJPEG ${cameraId}]: ${data}`);
   });
 
   ffmpeg.on('close', () => {
