@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Settings, Play, Square, Maximize, Minimize, Edit } from 'lucide-react'
+import { ArrowLeft, Settings, Edit } from 'lucide-react'
 import api from '../lib/api'
+import WSStreamPlayer from '../components/WSStreamPlayer'
 import { useAuthStore } from '../store/authStore'
 
 interface Camera {
@@ -114,59 +115,13 @@ const CameraDetail = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
-              <div className="flex items-center space-x-2">
-                {isStreaming ? (
-                  <><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <span className="text-red-400 text-sm font-medium">● LIVE</span></>
-                ) : (
-                  <span className="text-slate-400 text-sm">Offline</span>
-                )}
-              </div>
-              <span className="text-slate-400 text-xs">{camera.resolution} • {camera.frameRate}fps</span>
-            </div>
-
-            <div ref={containerRef} className="relative bg-black" style={{ aspectRatio: '16/9' }}>
-              {!isStreaming && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500">
-                  <p className="text-lg mb-2">Camera Offline</p>
-                  <p className="text-sm">Click "Start Live" to begin streaming</p>
-                </div>
-              )}
-              <img ref={imgRef} className="w-full h-full object-contain"
-                style={{ display: isStreaming ? 'block' : 'none' }}
-                onError={() => setIsStreaming(false)} alt="Live Stream" />
-              <div className="absolute top-4 left-4">
-                <span className={`px-3 py-1 rounded text-sm font-medium text-white ${
-                  camera.status === 'Active' ? 'bg-green-500' :
-                  camera.status === 'Inactive' ? 'bg-gray-500' : 'bg-yellow-500'
-                }`}>{camera.status}</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-700/50 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                {!isStreaming ? (
-                  <button onClick={startStream}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
-                    <Play className="w-4 h-4" />
-                    <span>Start Live</span>
-                  </button>
-                ) : (
-                  <button onClick={stopStream}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
-                    <Square className="w-4 h-4" />
-                    <span>Stop</span>
-                  </button>
-                )}
-              </div>
-              <button onClick={toggleFullscreen}
-                className="p-2 bg-slate-600 hover:bg-slate-500 rounded-lg transition-colors">
-                {isFullscreen ? <Minimize className="w-5 h-5 text-white" /> : <Maximize className="w-5 h-5 text-white" />}
-              </button>
-            </div>
-          </div>
+          <WSStreamPlayer
+            cameraId={camera._id}
+            cameraName={camera.name}
+            resolution={camera.resolution}
+            frameRate={camera.frameRate}
+            status={camera.status}
+          />
         </div>
 
         <div className="space-y-6">
