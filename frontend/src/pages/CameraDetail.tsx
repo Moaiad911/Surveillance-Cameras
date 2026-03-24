@@ -89,6 +89,7 @@ const CameraDetail = () => {
           <WSStreamPlayer
             cameraId={camera._id}
             cameraName={camera.name}
+            streamURL={camera.streamURL}
             resolution={camera.resolution}
             frameRate={camera.frameRate}
             status={camera.status}
