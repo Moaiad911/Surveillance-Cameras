@@ -9,7 +9,7 @@ const getInputArgs = (streamUrl) => {
     return ['-i', streamUrl];
   }
   if (platform === 'linux') {
-    return ['-f', 'v4l2', '-input_format', 'mjpeg', '-framerate', '30', '-video_size', '1280x720', '-i', streamUrl];
+    return ['-f', 'v4l2', '-input_format', 'mjpeg', '-framerate', '30', '-video_size', '848x480', '-i', streamUrl];
   }
   if (platform === 'win32') {
     const deviceName = streamUrl.startsWith('/dev/') ? 'Integrated Camera' : streamUrl;
