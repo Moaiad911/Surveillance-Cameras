@@ -1,29 +1,41 @@
 const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
-    type: {
-        type: String,
-        required: true,
-        enum: ['Motion Detected', 'Object Detected', 'System Alert', 'Camera Offline', 'Recording Started']
-    },
-    cameraId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Camera',
-        required: true
-    },
-    camera: {
-        type: String,
-        required: true
-    },
-    severity: {
-        type: String,
-        enum: ['low', 'medium', 'high'],
-        default: 'low'
-    },
-    acknowledged: {
-        type: Boolean,
-        default: false
-    }
+  type: {
+    type: String,
+    required: true,
+    default: 'Motion Detected'
+  },
+  cameraId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Camera',
+    required: true
+  },
+  camera: {
+    type: String,
+    default: ''
+  },
+  severity: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'low'
+  },
+  description: {
+    type: String,
+    default: ''
+  },
+  anomalyScore: {
+    type: Number,
+    default: 0
+  },
+  confidence: {
+    type: Number,
+    default: 0
+  },
+  acknowledged: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Event', eventSchema);

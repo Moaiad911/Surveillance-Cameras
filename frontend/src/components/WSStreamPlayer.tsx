@@ -20,7 +20,9 @@ interface Props {
 
 /** Returns true for /dev/videoN (Linux) or a bare number like "0" (macOS) */
 const isLocalDevice = (url: string) =>
-  /^\/dev\/video\d+$/.test(url.trim()) || /^\d+$/.test(url.trim());
+  /^\/dev\/video\d+$/.test(url.trim()) || // Linux: /dev/video0
+  /^\d+$/.test(url.trim()) || // macOS AVFoundation index: 0, 1 …
+  url.trim().toLowerCase() === "webcam"; // Windows / universal keyword
 
 const WSStreamPlayer = ({
   cameraId,

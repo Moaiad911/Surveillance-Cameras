@@ -62,9 +62,9 @@ const AddCamera = () => {
     return (
       /^rtsp:\/\/.+/.test(url) || // IP camera RTSP
       /^http(s)?:\/\/.+/.test(url) || // IP camera HTTP
-      /^\/dev\/video\d+$/.test(url) || // Linux webcam (/dev/video0)
-      /^\d+$/.test(url.trim()) || // macOS AVFoundation index (0, 1, …)
-      url.trim().length > 0 // Windows DirectShow device name
+      /^\/dev\/video\d+$/.test(url) || // Linux: /dev/video0
+      /^\d+$/.test(url.trim()) || // macOS AVFoundation index: 0, 1 …
+      url.trim().toLowerCase() === "webcam" // Windows / universal keyword
     );
   };
 
@@ -78,7 +78,7 @@ const AddCamera = () => {
     if (!form.streamURL.trim()) newErrors.streamUrl = "Stream URL is required";
     else if (!validateStreamUrl(form.streamURL))
       newErrors.streamUrl =
-        "Enter a valid stream URL (rtsp://, http://) or local device (/dev/video0)";
+        "Enter rtsp://, http://, /dev/video0 (Linux), 0 (macOS), or webcam (Windows)";
     if (!form.location) newErrors.location = "Location is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -191,7 +191,7 @@ const AddCamera = () => {
                 setForm((p) => ({ ...p, streamURL: e.target.value }))
               }
               className={inputClass("streamUrl")}
-              placeholder="rtsp://…  or  /dev/video0  (laptop webcam)"
+              placeholder="rtsp://… | /dev/video0 (Linux) | 0 (macOS) | webcam (Windows)"
             />
             {errors.streamUrl && (
               <p className="text-red-400 text-xs mt-1">{errors.streamUrl}</p>

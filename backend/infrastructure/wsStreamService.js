@@ -1,7 +1,9 @@
 const { spawn } = require('child_process');
 const os = require('os');
+const aiAnalysis = require('./aiAnalysisService');
 
 const activeStreams = new Map();
+const FRAME_SKIP = 3;
 
 const getInputArgs = (streamUrl) => {
   const platform = os.platform();
@@ -23,13 +25,14 @@ const getInputArgs = (streamUrl) => {
 
 const startWSStream = (ws, cameraId, streamUrl) => {
   if (activeStreams.has(cameraId)) {
-    const old = activeStreams.get(cameraId);
-    old.clients.add(ws);
+    const existing = activeStreams.get(cameraId);
+    existing.clients.add(ws);
     return;
   }
 
   const clients = new Set();
   clients.add(ws);
+  let frameCounter = 0;
 
   const inputArgs = getInputArgs(streamUrl);
 
@@ -53,6 +56,8 @@ const startWSStream = (ws, cameraId, streamUrl) => {
       if (start !== -1 && end !== -1 && end > start) {
         const frame = buffer.slice(start, end + 2);
         buffer = buffer.slice(end + 2);
+        frameCounter++;
+
         // بعت الـ frame لكل الـ clients
         clients.forEach(client => {
           if (client.readyState === 1) {
@@ -61,7 +66,20 @@ const startWSStream = (ws, cameraId, streamUrl) => {
             clients.delete(client);
           }
         });
-        // لو مفيش clients، وقف الـ stream
+
+        // بعت frame للـ AI كل FRAME_SKIP frames
+        if (frameCounter % FRAME_SKIP === 0) {
+          const frameBase64 = frame.toString('base64');
+          aiAnalysis.addFrame(cameraId, frameBase64, (result) => {
+            const resultMsg = JSON.stringify({ type: 'ai_result', ...result });
+            clients.forEach(client => {
+              if (client.readyState === 1) {
+                client.send(resultMsg);
+              }
+            });
+          });
+        }
+
         if (clients.size === 0) {
           ffmpeg.kill('SIGTERM');
         }
@@ -78,6 +96,7 @@ const startWSStream = (ws, cameraId, streamUrl) => {
 
   ffmpeg.on('close', () => {
     activeStreams.delete(cameraId);
+    aiAnalysis.clearCamera(cameraId);
     clients.forEach(client => {
       try { client.close(); } catch(e) {}
     });
@@ -91,6 +110,7 @@ const startWSStream = (ws, cameraId, streamUrl) => {
       stream.clients.delete(ws);
       if (stream.clients.size === 0) {
         stream.ffmpeg.kill('SIGTERM');
+        aiAnalysis.clearCamera(cameraId);
         activeStreams.delete(cameraId);
       }
     }
@@ -104,6 +124,7 @@ const stopWSStream = (cameraId) => {
     stream.clients.forEach(client => {
       try { client.close(); } catch(e) {}
     });
+    aiAnalysis.clearCamera(cameraId);
     activeStreams.delete(cameraId);
   }
 };
