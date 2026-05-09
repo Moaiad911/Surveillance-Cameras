@@ -53,7 +53,7 @@ const WSStreamPlayer = ({
   const rafFrameCount = useRef(0);
   const rafLastSecond = useRef(Date.now());
 
-  const browserCam = !!streamURL && isLocalDevice(streamURL);
+  const browserCam = false; // Force WebSocket mode
 
   // ─── Token helper ────────────────────────────────────────────────────────────
   const getToken = () => {
@@ -141,7 +141,7 @@ const WSStreamPlayer = ({
     const token = getToken();
     const wsUrl = `${
       window.location.protocol === "https:" ? "wss" : "ws"
-    }://${window.location.hostname === "localhost" ? "localhost:5000" : window.location.host}/ws/stream?token=${token}&cameraId=${cameraId}`;
+    }://${"localhost:5000"}/ws/stream?token=${token}&cameraId=${cameraId}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

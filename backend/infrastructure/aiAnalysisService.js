@@ -11,6 +11,7 @@ class AIAnalysisService {
   }
 
   addFrame(cameraId, frameBase64, onResult) {
+    // console.log(`[AI] Frame added for ${cameraId}, buffer: ${(this.frameBuffers.get(cameraId)||[]).length+1}/${BATCH_SIZE}`);
     if (!this.frameBuffers.has(cameraId)) {
       this.frameBuffers.set(cameraId, []);
       this.pendingBatches.set(cameraId, []);
@@ -24,6 +25,7 @@ class AIAnalysisService {
   }
 
   _sendBatchConcurrent(cameraId, frames, onResult) {
+    console.log(`[AI] 🚀 Sending batch of ${frames.length} frames for camera ${cameraId}`);
     const pending = this.pendingBatches.get(cameraId) || [];
     if (pending.length >= MAX_CONCURRENT) {
       console.log('[AI] Dropping batch - too many concurrent requests');

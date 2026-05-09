@@ -4,6 +4,7 @@ const aiAnalysis = require('./aiAnalysisService');
 
 const activeStreams = new Map();
 const FRAME_SKIP = 3;
+console.log("[WS] wsStreamService loaded with AI integration");
 
 const getInputArgs = (streamUrl) => {
   const platform = os.platform();
