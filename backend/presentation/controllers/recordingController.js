@@ -177,24 +177,3 @@ async function extractFramesFromVideo(videoPath) {
 
     return frames;
 }
-
-exports.saveRecording = async (req, res) => {
-    try {
-        const { filename, originalName, path, size } = req.body;
-        const RecordingModel = require('../../infrastructure/models/RecordingModel');
-        const recording = new RecordingModel({
-            filename,
-            originalName,
-            path,
-            size,
-            cameraId: req.params.cameraId,
-            uploadedBy: req.user._id,
-        });
-        await recording.save();
-        res.status(201).json({ message: 'Recording saved successfully', recording });
-        // شغل الـ AI تلقائي بعد الحفظ
-        analyzeVideoInBackground(recording);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-};

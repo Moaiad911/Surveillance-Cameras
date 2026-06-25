@@ -13,6 +13,13 @@ export interface Recording {
   duration?: number
   resolution?: string
   frameRate?: number
+  aiAnalyzed?: boolean
+  aiResult?: {
+    anomalyScore: number
+    isAnomaly: boolean
+    predictedClass: string
+    confidence: number
+  }
 }
 
 const getUrl = (path: string): string => {
