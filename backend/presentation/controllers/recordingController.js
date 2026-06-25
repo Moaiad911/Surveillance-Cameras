@@ -15,6 +15,8 @@ exports.uploadRecording = async (req, res) => {
         const isAdmin = req.user.role === 'Admin';
         const recording = await uploadRecording.execute(req.file, req.params.cameraId, req.user._id, isAdmin);
         res.status(201).json({ message: 'Recording uploaded successfully', recording });
+        // شغل الـ AI في الـ background تلقائي
+        analyzeVideoInBackground(recording);
     } catch (err) {
         res.status(err.status || 500).json({ message: err.message || 'Server error' });
     }
@@ -45,11 +47,7 @@ exports.analyzeRecording = async (req, res) => {
         const RecordingModel = require('../../infrastructure/models/RecordingModel');
         const recording = await RecordingModel.findById(req.params.id);
         if (!recording) return res.status(404).json({ message: 'Recording not found' });
-
-        // Start async analysis
         res.json({ message: 'Analysis started', recordingId: recording._id });
-
-        // Run in background
         analyzeVideoInBackground(recording);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -58,13 +56,10 @@ exports.analyzeRecording = async (req, res) => {
 
 async function analyzeVideoInBackground(recording) {
     const fetch = require('node-fetch');
-    const ffmpeg = require('child_process').spawn;
     const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
     try {
         console.log(`[AI Recording] Analyzing: ${recording.originalName}`);
-
-        // Extract frames from video using FFmpeg
         const frames = await extractFramesFromVideo(recording.path);
 
         if (frames.length === 0) {
@@ -74,7 +69,6 @@ async function analyzeVideoInBackground(recording) {
 
         console.log(`[AI Recording] Extracted ${frames.length} frames`);
 
-        // Send in batches of 16
         const BATCH_SIZE = 16;
         const results = [];
 
@@ -102,25 +96,24 @@ async function analyzeVideoInBackground(recording) {
             }
         }
 
-        // Get worst result
         if (results.length > 0) {
             const worstResult = results.reduce((max, r) => r.anomaly_score > max.anomaly_score ? r : max);
-            
-            // Save event if anomaly detected
+
             if (worstResult.is_anomaly) {
                 const EventModel = require('../../infrastructure/models/EventModel');
                 await EventModel.create({
                     cameraId: recording.cameraId,
                     type: worstResult.predicted_class,
                     severity: worstResult.anomaly_score > 0.8 ? 'high' : worstResult.anomaly_score > 0.5 ? 'medium' : 'low',
-                    description: `Anomaly detected in recording "${recording.originalName}": ${worstResult.predicted_class} (score: ${worstResult.anomaly_score.toFixed(2)})`,
+                    description: `Anomaly in recording "${recording.originalName}": ${worstResult.predicted_class} (score: ${worstResult.anomaly_score.toFixed(2)})`,
                     anomalyScore: worstResult.anomaly_score,
                     confidence: worstResult.class_confidence,
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
+            } else {
+                console.log(`[AI Recording] Normal - score: ${worstResult.anomaly_score.toFixed(3)}`);
             }
 
-            // Update recording with AI result
             const RecordingModel = require('../../infrastructure/models/RecordingModel');
             await RecordingModel.findByIdAndUpdate(recording._id, {
                 aiAnalyzed: true,
@@ -133,7 +126,7 @@ async function analyzeVideoInBackground(recording) {
             });
         }
 
-        console.log(`[AI Recording] Analysis complete for: ${recording.originalName}`);
+        console.log(`[AI Recording] Done: ${recording.originalName}`);
     } catch (err) {
         console.error(`[AI Recording] Error: ${err.message}`);
     }
@@ -147,11 +140,10 @@ async function extractFramesFromVideo(videoPath) {
 
     const frames = [];
     const tempDir = path.join(os.tmpdir(), `frames_${Date.now()}`);
-    
+
     try {
         fs.mkdirSync(tempDir, { recursive: true });
 
-        // If Cloudinary URL, download first
         let inputPath = videoPath;
         if (videoPath.startsWith('http')) {
             const fetch = require('node-fetch');
@@ -162,7 +154,6 @@ async function extractFramesFromVideo(videoPath) {
             inputPath = tempVideo;
         }
 
-        // Extract 1 frame per second max 64 frames
         execSync(`ffmpeg -i "${inputPath}" -vf "fps=1,scale=224:224" -q:v 2 "${tempDir}/frame_%04d.jpg" -y 2>/dev/null`, {
             timeout: 60000
         });

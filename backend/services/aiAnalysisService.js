@@ -90,7 +90,7 @@ class AIAnalysisService {
 
   async _saveEvent(cameraId, result) {
     try {
-      const EventModel = require('../models/EventModel');
+      const EventModel = require('../infrastructure/models/EventModel');
       const severity = result.anomaly_score > 0.8 ? 'high' : result.anomaly_score > 0.5 ? 'medium' : 'low';
       await EventModel.create({
         cameraId,
