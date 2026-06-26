@@ -32,7 +32,15 @@ app.use('/api/mjpeg', require('./presentation/routes/mjpegRoutes'));
 
 setupWSStream(server);
 
-app.get('/', (req, res) => res.send('Surveillance Cameras API is running'));
+// Serve Frontend
+const frontendDist = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendDist));
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/ws')) {
+    return next();
+  }
+  res.sendFile(path.join(frontendDist, 'index.html'));
+});
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
