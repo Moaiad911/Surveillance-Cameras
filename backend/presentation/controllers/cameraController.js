@@ -23,7 +23,7 @@ exports.createCamera = async (req, res) => {
 
 exports.getAllCameras = async (req, res) => {
     try {
-        const cameras = await getCameras.execute(req.user._id);
+        const cameras = await getCameras.execute(req.user._id, req.user.role === 'Admin');
         res.status(200).json(cameras);
     } catch (err) {
         res.status(err.status || 500).json({ message: err.message || 'Server error' });

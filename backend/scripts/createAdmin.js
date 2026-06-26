@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL;
 
@@ -13,15 +12,15 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 async function createAdmin() {
-  await mongoose.connect(MONGODB_URI);
-  console.log('✅ Connected to MongoDB');
+  await mongoose.connect(MONGODB_URI, { dbName: 'graduation_project' });
+  console.log('✅ Connected to MongoDB - DB:', mongoose.connection.db.databaseName);
 
   await User.deleteOne({ username: 'admin' });
 
   const passwordHash = await bcrypt.hash('Admin@1234', 10);
   await User.create({ username: 'admin', passwordHash, role: 'Admin' });
 
-  console.log('✅ Admin created');
+  console.log('✅ Admin created in graduation_project');
   console.log('👤 Username: admin');
   console.log('🔑 Password: Admin@1234');
   process.exit(0);
