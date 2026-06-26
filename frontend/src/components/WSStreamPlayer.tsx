@@ -141,7 +141,7 @@ const WSStreamPlayer = ({
     const token = getToken();
     const wsUrl = `${
       window.location.protocol === "https:" ? "wss" : "ws"
-    }://${"localhost:5000"}/ws/stream?token=${token}&cameraId=${cameraId}`;
+    }://${window.location.hostname === 'localhost' ? 'localhost:5000' : window.location.host}/ws/stream?token=${token}&cameraId=${cameraId}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
