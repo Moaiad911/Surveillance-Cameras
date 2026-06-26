@@ -1,40 +1,30 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-dotenv.config();
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URL;
 
-const UserModel = require('../infrastructure/models/UserModel');
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, enum: ['Admin', 'Operator'], default: 'Operator' },
+}, { timestamps: true });
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/graduation_project';
+const User = mongoose.model('User', userSchema);
 
-const createAdmin = async () => {
-    try {
-        await mongoose.connect(MONGODB_URI);
-        console.log('✅ Connected to MongoDB');
+async function createAdmin() {
+  await mongoose.connect(MONGODB_URI);
+  console.log('✅ Connected to MongoDB');
 
-        const existing = await UserModel.findOne({ username: 'admin' });
-        if (existing) {
-            console.log('ℹ️  Admin user already exists');
-            process.exit(0);
-        }
+  await User.deleteOne({ username: 'admin' });
 
-        const passwordHash = await bcrypt.hash('admin123', 10);
+  const passwordHash = await bcrypt.hash('Admin@1234', 10);
+  await User.create({ username: 'admin', passwordHash, role: 'Admin' });
 
-        await UserModel.create({
-            username: 'admin',
-            passwordHash,
-            role: 'Admin'
-        });
+  console.log('✅ Admin created');
+  console.log('👤 Username: admin');
+  console.log('🔑 Password: Admin@1234');
+  process.exit(0);
+}
 
-        console.log('✅ Admin user created successfully');
-        console.log('👤 Username: admin');
-        console.log('🔑 Password: admin123');
-        process.exit(0);
-    } catch (err) {
-        console.error('❌ Error:', err);
-        process.exit(1);
-    }
-};
-
-createAdmin();
+createAdmin().catch(err => { console.error(err); process.exit(1); });
