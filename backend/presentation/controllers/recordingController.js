@@ -99,7 +99,7 @@ async function analyzeVideoInBackground(recording) {
         if (results.length > 0) {
             const worstResult = results.reduce((max, r) => r.anomaly_score > max.anomaly_score ? r : max);
 
-            if (worstResult.is_anomaly) {
+            if (worstResult.anomaly_score > 0.05) {
                 const EventModel = require('../../infrastructure/models/EventModel');
                 await EventModel.create({
                     cameraId: recording.cameraId,
