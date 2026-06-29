@@ -154,14 +154,14 @@ async function extractFramesFromVideo(videoPath) {
             inputPath = tempVideo;
         }
 
-        execSync(`ffmpeg -i "${inputPath}" -vf "fps=1,scale=224:224" -q:v 2 "${tempDir}/frame_%04d.jpg" -y 2>/dev/null`, {
+        execSync(`ffmpeg -i "${inputPath}" -vf "fps=8,scale=224:224" -q:v 2 "${tempDir}/frame_%04d.jpg" -y 2>/dev/null`, {
             timeout: 60000
         });
 
         const files = fs.readdirSync(tempDir)
             .filter(f => f.endsWith('.jpg'))
             .sort()
-            .slice(0, 64);
+            .slice(0, 128);
 
         for (const file of files) {
             const filePath = path.join(tempDir, file);

@@ -5,6 +5,7 @@ import { recordingService, Recording } from '../services/recordingService'
 import { cameraService } from '../services/cameraService'
 import type { Camera } from '../services/cameraService'
 import { useAuthStore } from '../store/authStore'
+import { useUploadStore } from '../store/uploadStore'
 import VideoPlayerModal from '../components/VideoPlayerModal'
 import RecordingCard from '../components/RecordingCard'
 
@@ -12,6 +13,7 @@ type SortOption = 'newest' | 'oldest' | 'largest' | 'smallest'
 
 const Recordings = () => {
   const { user } = useAuthStore()
+  const { addUpload, updateProgress, setStatus } = useUploadStore()
   const isAdmin = user?.role === 'Admin'
   const [searchParams] = useSearchParams()
 
@@ -68,23 +70,34 @@ const Recordings = () => {
     }
   }
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (!file || !selectedCamera) return
-    setUploading(true)
-    setUploadProgress(0)
-    setError('')
-    try {
-      await recordingService.upload(selectedCamera, file, setUploadProgress)
-      setFile(null)
-      setSuccess('Recording uploaded successfully!')
-      await loadRecordings(selectedCamera)
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload recording')
-    } finally {
-      setUploading(false)
-      setUploadProgress(0)
+    const uploadId = Date.now().toString()
+    addUpload({ id: uploadId, fileName: file.name, cameraId: selectedCamera, progress: 0, status: 'uploading' })
+    setFile(null)
+    setSuccess('Upload started in background!')
+    setTimeout(() => setSuccess(''), 3000)
+
+    const formData = new FormData()
+    formData.append('video', file)
+    const token = JSON.parse(localStorage.getItem('auth-storage') || '{}')?.state?.token
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `/api/recordings/${selectedCamera}/upload`)
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) updateProgress(uploadId, Math.round((e.loaded / e.total) * 100))
     }
+    xhr.onload = () => {
+      if (xhr.status === 201) {
+        setStatus(uploadId, 'done')
+        loadRecordings(selectedCamera)
+        setTimeout(() => {}, 3000)
+      } else {
+        setStatus(uploadId, 'error')
+      }
+    }
+    xhr.onerror = () => setStatus(uploadId, 'error')
+    xhr.send(formData)
   }
 
   const handleDelete = async (recording: Recording) => {
