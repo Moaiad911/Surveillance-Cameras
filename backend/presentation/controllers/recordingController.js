@@ -88,8 +88,9 @@ async function analyzeVideoInBackground(recording) {
 
                 if (response.ok) {
                     const result = await response.json();
+                    result.batchIndex = Math.floor(i / BATCH_SIZE);
                     results.push(result);
-                    console.log(`[AI Recording] Batch ${Math.floor(i/BATCH_SIZE)+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
+                    console.log(`[AI Recording] Batch ${result.batchIndex+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
                 }
             } catch (err) {
                 console.error(`[AI Recording] Batch error: ${err.message}`);
@@ -108,6 +109,10 @@ async function analyzeVideoInBackground(recording) {
                     description: `Anomaly in recording "${recording.originalName}": ${worstResult.predicted_class} (score: ${worstResult.anomaly_score.toFixed(2)})`,
                     anomalyScore: worstResult.anomaly_score,
                     confidence: worstResult.class_confidence,
+                    recordingId: recording._id,
+                    recordingPath: recording.path,
+                    recordingName: recording.originalName,
+                    clipStartTime: Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2),
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
             } else {
