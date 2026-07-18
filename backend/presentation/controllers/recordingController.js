@@ -115,6 +115,26 @@ async function analyzeVideoInBackground(recording) {
                     clipStartTime: Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2),
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
+
+                try {
+                    const { sendAnomalyAlert } = require('../../infrastructure/whatsappService');
+                    const CameraModel = require('../../infrastructure/models/CameraModel');
+                    const camera = await CameraModel.findById(recording.cameraId);
+                    const alertPhone = process.env.ALERT_PHONE_NUMBER;
+                    if (alertPhone) {
+                        await sendAnomalyAlert(alertPhone, {
+                            type: worstResult.predicted_class,
+                            cameraName: camera?.name || 'Unknown',
+                            predictedClass: worstResult.predicted_class,
+                            anomalyScore: worstResult.anomaly_score,
+                        });
+                        console.log('[AI Recording] WhatsApp alert sent');
+                    } else {
+                        console.log('[AI Recording] ALERT_PHONE_NUMBER not set, skipping WhatsApp alert');
+                    }
+                } catch (err) {
+                    console.error('[AI Recording] WhatsApp alert error:', err.message);
+                }
             } else {
                 console.log(`[AI Recording] Normal - score: ${worstResult.anomaly_score.toFixed(3)}`);
             }
