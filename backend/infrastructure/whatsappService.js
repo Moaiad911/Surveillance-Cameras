@@ -25,7 +25,11 @@ const initWhatsApp = () => {
         console.log('❌ WhatsApp disconnected');
     });
 
-    client.initialize();
+    console.log('[WhatsApp] Launching Puppeteer/Chrome...');
+    client.initialize().catch((err) => {
+        console.error('[WhatsApp] Initialize FAILED:', err.message);
+        console.error(err.stack);
+    });
 };
 
 const sendAlert = async (phoneNumber, message) => {
