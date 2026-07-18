@@ -118,19 +118,33 @@ async function analyzeVideoInBackground(recording) {
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
 
                 try {
-                    const { sendAnomalyAlert, sendMediaAlert } = require('../../infrastructure/whatsappService');
+                    const WHATSAPP_DAEMON_URL = process.env.WHATSAPP_DAEMON_URL || 'http://localhost:5050';
                     const CameraModel = require('../../infrastructure/models/CameraModel');
                     const camera = await CameraModel.findById(recording.cameraId);
                     const alertPhone = process.env.ALERT_PHONE_NUMBER;
 
                     if (alertPhone) {
-                        const alertSent = await sendAnomalyAlert(alertPhone, {
-                            type: worstResult.predicted_class,
-                            cameraName: camera?.name || 'Unknown',
-                            predictedClass: worstResult.predicted_class,
-                            anomalyScore: worstResult.anomaly_score,
-                        });
-                        console.log(alertSent ? '[AI Recording] WhatsApp alert sent' : '[AI Recording] WhatsApp alert FAILED (client not ready?)');
+                        let alertSent = false;
+                        try {
+                            const alertResp = await fetch(`${WHATSAPP_DAEMON_URL}/send-alert`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    phoneNumber: alertPhone,
+                                    data: {
+                                                type: worstResult.predicted_class,
+                                                cameraName: camera?.name || 'Unknown',
+                                                predictedClass: worstResult.predicted_class,
+                                                anomalyScore: worstResult.anomaly_score,
+                                    },
+                                }),
+                            });
+                            const alertJson = await alertResp.json();
+                            alertSent = !!alertJson.sent;
+                        } catch (daemonErr) {
+                            console.error('[AI Recording] WhatsApp daemon unreachable:', daemonErr.message);
+                        }
+                        console.log(alertSent ? '[AI Recording] WhatsApp alert sent' : '[AI Recording] WhatsApp alert FAILED (daemon not ready/reachable?)');
 
                         // Extract and send a short clip around the anomaly
                         try {
@@ -153,12 +167,23 @@ async function analyzeVideoInBackground(recording) {
                                 outputPath
                             ]);
 
-                            const clipSent = await sendMediaAlert(
-                                alertPhone,
-                                outputPath,
-                                `🎥 Clip: ${worstResult.predicted_class} - ${camera?.name || 'Unknown'}`
-                            );
-                            console.log(clipSent ? '[AI Recording] WhatsApp clip sent' : '[AI Recording] WhatsApp clip FAILED (client not ready?)');
+                            let clipSent = false;
+                            try {
+                                const mediaResp = await fetch(`${WHATSAPP_DAEMON_URL}/send-media`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        phoneNumber: alertPhone,
+                                        filePath: outputPath,
+                                        caption: `🎥 Clip: ${worstResult.predicted_class} - ${camera?.name || 'Unknown'}`,
+                                    }),
+                                });
+                                const mediaJson = await mediaResp.json();
+                                clipSent = !!mediaJson.sent;
+                            } catch (daemonErr) {
+                                console.error('[AI Recording] WhatsApp daemon unreachable (media):', daemonErr.message);
+                            }
+                            console.log(clipSent ? '[AI Recording] WhatsApp clip sent' : '[AI Recording] WhatsApp clip FAILED (daemon not ready/reachable?)');
 
                             fs.unlink(outputPath, () => {});
                         } catch (clipErr) {

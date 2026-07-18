@@ -9,6 +9,7 @@ const eventSchema = new mongoose.Schema({
   anomalyScore: { type: Number, default: 0 },
   confidence: { type: Number, default: 0 },
   acknowledged: { type: Boolean, default: false },
+  feedback: { type: String, enum: ['pending', 'correct', 'false_alarm'], default: 'pending' },
   recordingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Recording' },
   recordingPath: { type: String },
   recordingName: { type: String },
