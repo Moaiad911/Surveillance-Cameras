@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { AlertTriangle, Filter, Search, Clock, Camera, CheckCircle, Shield, RefreshCw, Play, X } from 'lucide-react'
+import { AlertTriangle, Filter, Search, Clock, Camera, CheckCircle, Shield, RefreshCw, Play, X, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { format } from 'date-fns'
 import api from '../lib/api'
 
@@ -12,11 +12,18 @@ interface Event {
   severity: 'high' | 'medium' | 'low'
   description: string
   acknowledged: boolean
+  feedback?: 'pending' | 'correct' | 'false_alarm'
   anomalyScore?: number
   confidence?: number
   recordingPath?: string
   recordingName?: string
   clipStartTime?: number
+  boundingBoxes?: {
+    startTime: number
+    endTime: number
+    frameSize: number
+    boxes: { x1: number; y1: number; x2: number; y2: number; anomalyScore: number }[]
+  }[]
 }
 
 const Events = () => {
@@ -26,6 +33,7 @@ const Events = () => {
   const [severityFilter, setSeverityFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all')
   const [selectedClip, setSelectedClip] = useState<Event | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   const fetchEvents = async () => {
     try {
@@ -63,12 +71,69 @@ const Events = () => {
     }
   }, [selectedClip])
 
+  useEffect(() => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || !selectedClip?.boundingBoxes?.length) return
+
+    const drawBoxes = () => {
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      canvas.width = video.clientWidth
+      canvas.height = video.clientHeight
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      const frame = selectedClip.boundingBoxes!.find(
+        (f) => video.currentTime >= f.startTime && video.currentTime <= f.endTime
+      )
+      if (!frame) return
+
+      const scaleX = canvas.width / frame.frameSize
+      const scaleY = canvas.height / frame.frameSize
+
+      frame.boxes.forEach((box) => {
+        const x = box.x1 * scaleX
+        const y = box.y1 * scaleY
+        const w = (box.x2 - box.x1) * scaleX
+        const h = (box.y2 - box.y1) * scaleY
+
+        ctx.strokeStyle = box.anomalyScore > 0.8 ? '#ef4444' : '#eab308'
+        ctx.lineWidth = 2
+        ctx.strokeRect(x, y, w, h)
+
+        const label = `${(box.anomalyScore * 100).toFixed(0)}%`
+        ctx.font = '12px sans-serif'
+        const textWidth = ctx.measureText(label).width
+        ctx.fillStyle = box.anomalyScore > 0.8 ? '#ef4444' : '#eab308'
+        ctx.fillRect(x, y - 16, textWidth + 8, 16)
+        ctx.fillStyle = '#000'
+        ctx.fillText(label, x + 4, y - 4)
+      })
+    }
+
+    video.addEventListener('timeupdate', drawBoxes)
+    video.addEventListener('play', drawBoxes)
+    return () => {
+      video.removeEventListener('timeupdate', drawBoxes)
+      video.removeEventListener('play', drawBoxes)
+    }
+  }, [selectedClip])
+
   const acknowledgeEvent = async (eventId: string) => {
     try {
       await api.put(`/dashboard/events/${eventId}/acknowledge`)
       setEvents(prev => prev.map(e => e._id === eventId ? { ...e, acknowledged: true } : e))
     } catch (err) {
       console.error('Failed to acknowledge event')
+    }
+  }
+
+  const setEventFeedback = async (eventId: string, feedback: 'correct' | 'false_alarm') => {
+    try {
+      await api.put(`/dashboard/events/${eventId}/feedback`, { feedback })
+      setEvents(prev => prev.map(e => e._id === eventId ? { ...e, feedback } : e))
+    } catch (err) {
+      console.error('Failed to save feedback')
     }
   }
 
@@ -195,6 +260,25 @@ const Events = () => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
+                    {/* Feedback buttons */}
+                    {(!event.feedback || event.feedback === 'pending') ? (
+                      <>
+                        <button onClick={() => setEventFeedback(event._id, 'correct')}
+                          title="Mark as correct alert"
+                          className="flex items-center space-x-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm">
+                          <ThumbsUp className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEventFeedback(event._id, 'false_alarm')}
+                          title="Mark as false alarm"
+                          className="flex items-center space-x-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm">
+                          <ThumbsDown className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${event.feedback === 'correct' ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-red-500/20 text-red-400 border border-red-500/50'}`}>
+                        {event.feedback === 'correct' ? '✓ Correct' : '✗ False Alarm'}
+                      </span>
+                    )}
                     {/* View Clip button */}
                     {event.recordingPath && (
                       <button onClick={() => setSelectedClip(event)}
@@ -247,10 +331,13 @@ const Events = () => {
               </button>
             </div>
             <div className="p-4 bg-black rounded-b-xl">
-              <video ref={videoRef} controls className="w-full rounded-lg max-h-96"
-                onError={() => console.error('Video load error')}>
-                Your browser does not support the video tag.
-              </video>
+              <div className="relative">
+                <video ref={videoRef} controls className="w-full rounded-lg max-h-96"
+                  onError={() => console.error('Video load error')}>
+                  Your browser does not support the video tag.
+                </video>
+                <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
+              </div>
             </div>
             <div className="px-6 py-3 bg-slate-900/50 rounded-b-xl flex items-center justify-between text-xs text-slate-400">
               <span>Detected at: {format(new Date(selectedClip.createdAt), 'MMM dd, yyyy HH:mm:ss')}</span>

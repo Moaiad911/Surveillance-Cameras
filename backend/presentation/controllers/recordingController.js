@@ -1,3 +1,4 @@
+const fs = require('fs');
 const UploadRecordingUseCase = require('../../usecases/recording/UploadRecordingUseCase');
 const GetRecordingsUseCase = require('../../usecases/recording/GetRecordingsUseCase');
 const DeleteRecordingUseCase = require('../../usecases/recording/DeleteRecordingUseCase');
@@ -89,8 +90,11 @@ async function analyzeVideoInBackground(recording) {
                 if (response.ok) {
                     const result = await response.json();
                     result.batchIndex = Math.floor(i / BATCH_SIZE);
+                    result.batchStartTime = (i / 8);
+                    result.batchEndTime = ((i + batch.length) / 8);
                     results.push(result);
                     console.log(`[AI Recording] Batch ${result.batchIndex+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
+                    console.log(`[AI Recording] Batch ${result.batchIndex+1} FULL RESULT:`, JSON.stringify(result, null, 2));
                 }
             } catch (err) {
                 console.error(`[AI Recording] Batch error: ${err.message}`);
@@ -102,6 +106,19 @@ async function analyzeVideoInBackground(recording) {
 
             if (worstResult.anomaly_score > 0.05) {
                 const EventModel = require('../../infrastructure/models/EventModel');
+
+                const boundingBoxes = results
+                    .filter(r => r.localisation && r.localisation.bounding_boxes && r.localisation.bounding_boxes.length > 0)
+                    .map(r => ({
+                        startTime: r.batchStartTime,
+                        endTime: r.batchEndTime,
+                        frameSize: 224,
+                        boxes: r.localisation.bounding_boxes.map(b => ({
+                            x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2,
+                            anomalyScore: b.anomaly_score,
+                        })),
+                    }));
+
                 await EventModel.create({
                     cameraId: recording.cameraId,
                     type: worstResult.predicted_class,
@@ -113,8 +130,88 @@ async function analyzeVideoInBackground(recording) {
                     recordingPath: recording.path,
                     recordingName: recording.originalName,
                     clipStartTime: Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2),
+                    boundingBoxes,
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
+
+                try {
+                    const WHATSAPP_DAEMON_URL = process.env.WHATSAPP_DAEMON_URL || 'http://localhost:5050';
+                    const CameraModel = require('../../infrastructure/models/CameraModel');
+                    const camera = await CameraModel.findById(recording.cameraId);
+                    const alertPhone = process.env.ALERT_PHONE_NUMBER;
+
+                    if (alertPhone) {
+                        let alertSent = false;
+                        try {
+                            const alertResp = await fetch(`${WHATSAPP_DAEMON_URL}/send-alert`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    phoneNumber: alertPhone,
+                                    data: {
+                                                type: worstResult.predicted_class,
+                                                cameraName: camera?.name || 'Unknown',
+                                                predictedClass: worstResult.predicted_class,
+                                                anomalyScore: worstResult.anomaly_score,
+                                    },
+                                }),
+                            });
+                            const alertJson = await alertResp.json();
+                            alertSent = !!alertJson.sent;
+                        } catch (daemonErr) {
+                            console.error('[AI Recording] WhatsApp daemon unreachable:', daemonErr.message);
+                        }
+                        console.log(alertSent ? '[AI Recording] WhatsApp alert sent' : '[AI Recording] WhatsApp alert FAILED (daemon not ready/reachable?)');
+
+                        // Extract and send a short clip around the anomaly
+                        try {
+                            const { execFile } = require('child_process');
+                            const path = require('path');
+                            const os = require('os');
+                            const util = require('util');
+                            const execFileAsync = util.promisify(execFile);
+
+                            const clipStart = Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2);
+                            const clipDuration = 10; // seconds
+                            const outputPath = path.join(os.tmpdir(), `clip_${recording._id}_${Date.now()}.mp4`);
+
+                            await execFileAsync('ffmpeg', [
+                                '-ss', String(clipStart),
+                                '-i', recording.path,
+                                '-t', String(clipDuration),
+                                '-c', 'copy',
+                                '-y',
+                                outputPath
+                            ]);
+
+                            let clipSent = false;
+                            try {
+                                const mediaResp = await fetch(`${WHATSAPP_DAEMON_URL}/send-media`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        phoneNumber: alertPhone,
+                                        filePath: outputPath,
+                                        caption: `🎥 Clip: ${worstResult.predicted_class} - ${camera?.name || 'Unknown'}`,
+                                    }),
+                                });
+                                const mediaJson = await mediaResp.json();
+                                clipSent = !!mediaJson.sent;
+                            } catch (daemonErr) {
+                                console.error('[AI Recording] WhatsApp daemon unreachable (media):', daemonErr.message);
+                            }
+                            console.log(clipSent ? '[AI Recording] WhatsApp clip sent' : '[AI Recording] WhatsApp clip FAILED (daemon not ready/reachable?)');
+
+                            fs.unlink(outputPath, () => {});
+                        } catch (clipErr) {
+                            console.error('[AI Recording] Clip extraction/send error:', clipErr.message);
+                        }
+                    } else {
+                        console.log('[AI Recording] ALERT_PHONE_NUMBER not set, skipping WhatsApp alert');
+                    }
+                } catch (err) {
+                    console.error('[AI Recording] WhatsApp alert error:', err.message);
+                }
             } else {
                 console.log(`[AI Recording] Normal - score: ${worstResult.anomaly_score.toFixed(3)}`);
             }
