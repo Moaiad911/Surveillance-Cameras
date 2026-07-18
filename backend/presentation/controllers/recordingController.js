@@ -90,6 +90,8 @@ async function analyzeVideoInBackground(recording) {
                 if (response.ok) {
                     const result = await response.json();
                     result.batchIndex = Math.floor(i / BATCH_SIZE);
+                    result.batchStartTime = (i / 8);
+                    result.batchEndTime = ((i + batch.length) / 8);
                     results.push(result);
                     console.log(`[AI Recording] Batch ${result.batchIndex+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
                 }
@@ -103,6 +105,19 @@ async function analyzeVideoInBackground(recording) {
 
             if (worstResult.anomaly_score > 0.05) {
                 const EventModel = require('../../infrastructure/models/EventModel');
+
+                const boundingBoxes = results
+                    .filter(r => r.localisation && r.localisation.bounding_boxes && r.localisation.bounding_boxes.length > 0)
+                    .map(r => ({
+                        startTime: r.batchStartTime,
+                        endTime: r.batchEndTime,
+                        frameSize: 224,
+                        boxes: r.localisation.bounding_boxes.map(b => ({
+                            x1: b.x1, y1: b.y1, x2: b.x2, y2: b.y2,
+                            anomalyScore: b.anomaly_score,
+                        })),
+                    }));
+
                 await EventModel.create({
                     cameraId: recording.cameraId,
                     type: worstResult.predicted_class,
@@ -114,6 +129,7 @@ async function analyzeVideoInBackground(recording) {
                     recordingPath: recording.path,
                     recordingName: recording.originalName,
                     clipStartTime: Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2),
+                    boundingBoxes,
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
 

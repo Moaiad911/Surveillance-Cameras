@@ -14,6 +14,15 @@ const eventSchema = new mongoose.Schema({
   recordingPath: { type: String },
   recordingName: { type: String },
   clipStartTime: { type: Number },
+  boundingBoxes: [{
+    startTime: Number,
+    endTime: Number,
+    frameSize: { type: Number, default: 224 },
+    boxes: [{
+      x1: Number, y1: Number, x2: Number, y2: Number,
+      anomalyScore: Number,
+    }],
+  }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Event', eventSchema);
