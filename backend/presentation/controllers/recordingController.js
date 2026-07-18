@@ -94,6 +94,7 @@ async function analyzeVideoInBackground(recording) {
                     result.batchEndTime = ((i + batch.length) / 8);
                     results.push(result);
                     console.log(`[AI Recording] Batch ${result.batchIndex+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
+                    console.log(`[AI Recording] Batch ${result.batchIndex+1} FULL RESULT:`, JSON.stringify(result, null, 2));
                 }
             } catch (err) {
                 console.error(`[AI Recording] Batch error: ${err.message}`);
