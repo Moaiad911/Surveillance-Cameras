@@ -18,6 +18,10 @@ class EventRepository extends IEventRepository {
     async acknowledge(id) {
         return await EventModel.findByIdAndUpdate(id, { acknowledged: true }, { new: true });
     }
+
+    async setFeedback(id, feedback) {
+        return await EventModel.findByIdAndUpdate(id, { feedback }, { new: true });
+    }
 }
 
 module.exports = EventRepository;

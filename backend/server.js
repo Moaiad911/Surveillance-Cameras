@@ -7,7 +7,6 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger/swagger');
 const connectDB = require('./infrastructure/database/mongoose');
 const { setupWSStream } = require('./presentation/routes/wsStreamRoutes');
-const { initWhatsApp } = require('./infrastructure/whatsappService');
 
 dotenv.config();
 const app = express();
@@ -32,7 +31,20 @@ app.use('/api/upload', require('./presentation/routes/uploadRoutes'));
 app.use('/api/mjpeg', require('./presentation/routes/mjpegRoutes'));
 
 setupWSStream(server);
-initWhatsApp();
+
+// Weekly Report Cron Job - كل يوم أحد الساعة 9 الصبح
+const cron = require('node-cron');
+const { sendWeeklyReport } = require('./infrastructure/weeklyReportService');
+cron.schedule('0 9 * * 0', async () => {
+    console.log('[Weekly Report] Running scheduled weekly report...');
+    const alertPhone = process.env.ALERT_PHONE_NUMBER;
+    if (alertPhone) {
+        const result = await sendWeeklyReport(alertPhone);
+        console.log(result.sent ? '[Weekly Report] Sent successfully' : '[Weekly Report] Failed to send');
+    } else {
+        console.log('[Weekly Report] ALERT_PHONE_NUMBER not set, skipping');
+    }
+});
 
 // Serve Frontend in production
 const frontendDist = path.join(__dirname, '../frontend/dist');
