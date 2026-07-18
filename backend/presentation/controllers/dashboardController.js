@@ -42,6 +42,20 @@ exports.acknowledgeEvent = async (req, res) => {
     }
 };
 
+exports.testWeeklyReport = async (req, res) => {
+    try {
+        const { sendWeeklyReport } = require('../../infrastructure/weeklyReportService');
+        const alertPhone = process.env.ALERT_PHONE_NUMBER;
+        if (!alertPhone) {
+            return res.status(400).json({ message: 'ALERT_PHONE_NUMBER not set in .env' });
+        }
+        const result = await sendWeeklyReport(alertPhone);
+        res.status(200).json(result);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 exports.setEventFeedback = async (req, res) => {
     try {
         const { feedback } = req.body;

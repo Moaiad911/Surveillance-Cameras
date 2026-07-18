@@ -48,5 +48,6 @@ router.get('/events', dashboardController.getRecentEvents);
 
 router.put('/events/:id/acknowledge', dashboardController.acknowledgeEvent);
 router.put('/events/:id/feedback', dashboardController.setEventFeedback);
+router.get('/test-weekly-report', dashboardController.testWeeklyReport);
 
 module.exports = router;

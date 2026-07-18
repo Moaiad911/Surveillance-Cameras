@@ -1,10 +1,20 @@
 const express = require('express');
-const { initWhatsApp, sendAnomalyAlert, sendMediaAlert, isReady } = require('./infrastructure/whatsappService');
+const { initWhatsApp, sendAlert, sendAnomalyAlert, sendMediaAlert, isReady } = require('./infrastructure/whatsappService');
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.WHATSAPP_DAEMON_PORT || 5050;
+
+app.post('/send-text', async (req, res) => {
+    try {
+        const { phoneNumber, message } = req.body;
+        const sent = await sendAlert(phoneNumber, message);
+        res.status(200).json({ sent });
+    } catch (err) {
+        res.status(500).json({ sent: false, error: err.message });
+    }
+});
 
 app.post('/send-alert', async (req, res) => {
     try {
