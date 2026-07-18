@@ -1,3 +1,4 @@
+const fs = require('fs');
 const UploadRecordingUseCase = require('../../usecases/recording/UploadRecordingUseCase');
 const GetRecordingsUseCase = require('../../usecases/recording/GetRecordingsUseCase');
 const DeleteRecordingUseCase = require('../../usecases/recording/DeleteRecordingUseCase');
@@ -117,18 +118,52 @@ async function analyzeVideoInBackground(recording) {
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
 
                 try {
-                    const { sendAnomalyAlert } = require('../../infrastructure/whatsappService');
+                    const { sendAnomalyAlert, sendMediaAlert } = require('../../infrastructure/whatsappService');
                     const CameraModel = require('../../infrastructure/models/CameraModel');
                     const camera = await CameraModel.findById(recording.cameraId);
                     const alertPhone = process.env.ALERT_PHONE_NUMBER;
+
                     if (alertPhone) {
-                        await sendAnomalyAlert(alertPhone, {
+                        const alertSent = await sendAnomalyAlert(alertPhone, {
                             type: worstResult.predicted_class,
                             cameraName: camera?.name || 'Unknown',
                             predictedClass: worstResult.predicted_class,
                             anomalyScore: worstResult.anomaly_score,
                         });
-                        console.log('[AI Recording] WhatsApp alert sent');
+                        console.log(alertSent ? '[AI Recording] WhatsApp alert sent' : '[AI Recording] WhatsApp alert FAILED (client not ready?)');
+
+                        // Extract and send a short clip around the anomaly
+                        try {
+                            const { execFile } = require('child_process');
+                            const path = require('path');
+                            const os = require('os');
+                            const util = require('util');
+                            const execFileAsync = util.promisify(execFile);
+
+                            const clipStart = Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2);
+                            const clipDuration = 10; // seconds
+                            const outputPath = path.join(os.tmpdir(), `clip_${recording._id}_${Date.now()}.mp4`);
+
+                            await execFileAsync('ffmpeg', [
+                                '-ss', String(clipStart),
+                                '-i', recording.path,
+                                '-t', String(clipDuration),
+                                '-c', 'copy',
+                                '-y',
+                                outputPath
+                            ]);
+
+                            const clipSent = await sendMediaAlert(
+                                alertPhone,
+                                outputPath,
+                                `🎥 Clip: ${worstResult.predicted_class} - ${camera?.name || 'Unknown'}`
+                            );
+                            console.log(clipSent ? '[AI Recording] WhatsApp clip sent' : '[AI Recording] WhatsApp clip FAILED (client not ready?)');
+
+                            fs.unlink(outputPath, () => {});
+                        } catch (clipErr) {
+                            console.error('[AI Recording] Clip extraction/send error:', clipErr.message);
+                        }
                     } else {
                         console.log('[AI Recording] ALERT_PHONE_NUMBER not set, skipping WhatsApp alert');
                     }
