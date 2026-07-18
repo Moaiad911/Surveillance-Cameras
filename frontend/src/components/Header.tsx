@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Search, X, AlertTriangle, Shield, CheckCircle } from 'lucide-react'
+import { Bell, Search, X, AlertTriangle, Shield, CheckCircle, Play } from 'lucide-react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/api'
@@ -13,6 +13,9 @@ interface Notification {
   createdAt: string
   anomalyScore?: number
   cameraId?: string
+  recordingPath?: string
+  recordingName?: string
+  clipStartTime?: number
 }
 
 const Header = () => {
@@ -21,7 +24,9 @@ const Header = () => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [selectedClip, setSelectedClip] = useState<Notification | null>(null)
   const notifRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const fetchNotifications = async () => {
     try {
@@ -48,6 +53,25 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (selectedClip && videoRef.current && selectedClip.recordingPath) {
+      const video = videoRef.current
+      video.pause()
+      video.src = selectedClip.recordingPath
+      video.load()
+
+      const handleLoadedMetadata = () => {
+        if (selectedClip.clipStartTime) {
+          video.currentTime = selectedClip.clipStartTime
+        }
+        video.play().catch(() => {})
+      }
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+    }
+  }, [selectedClip])
 
   const acknowledgeAll = async () => {
     try {
@@ -176,9 +200,19 @@ const Header = () => {
                                   <span className="text-xs text-slate-400">{(notif.anomalyScore * 100).toFixed(0)}%</span>
                                 </div>
                               )}
-                              <p className="text-slate-500 text-xs mt-1">
-                                {new Date(notif.createdAt).toLocaleString()}
-                              </p>
+                              <div className="flex items-center justify-between mt-1">
+                                <p className="text-slate-500 text-xs">
+                                  {new Date(notif.createdAt).toLocaleString()}
+                                </p>
+                                {notif.recordingPath && (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedClip(notif) }}
+                                    className="flex items-center space-x-1 px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-xs transition-colors">
+                                    <Play className="w-3 h-3" />
+                                    <span>View Clip</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                           {!notif.acknowledged && (
@@ -221,6 +255,37 @@ const Header = () => {
           </button>
         </div>
       </div>
+
+      {/* Video Clip Modal */}
+      {selectedClip && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-3xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+              <div>
+                <h3 className="text-white font-semibold">{selectedClip.type} Detected</h3>
+                <p className="text-slate-400 text-sm">
+                  {selectedClip.recordingName} • Score: {((selectedClip.anomalyScore || 0) * 100).toFixed(0)}%
+                </p>
+              </div>
+              <button onClick={() => { setSelectedClip(null); if (videoRef.current) videoRef.current.pause() }}
+                className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-black rounded-b-xl">
+              <video ref={videoRef} controls className="w-full rounded-lg max-h-96">
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            <div className="px-6 py-3 bg-slate-900/50 rounded-b-xl flex items-center justify-between text-xs text-slate-400">
+              <span>Detected at: {new Date(selectedClip.createdAt).toLocaleString()}</span>
+              <span className={`px-2 py-1 rounded font-medium ${getSeverityColor(selectedClip.severity)}`}>
+                {selectedClip.severity.toUpperCase()}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

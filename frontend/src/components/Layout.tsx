@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import UploadIndicator from './UploadIndicator'
 
 interface LayoutProps {
   children: ReactNode
@@ -16,10 +17,9 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+      <UploadIndicator />
     </div>
   )
 }
 
 export default Layout
-
-

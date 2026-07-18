@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger/swagger');
 const connectDB = require('./infrastructure/database/mongoose');
 const { setupWSStream } = require('./presentation/routes/wsStreamRoutes');
+const { initWhatsApp } = require('./infrastructure/whatsappService');
 
 dotenv.config();
 const app = express();
@@ -31,6 +32,7 @@ app.use('/api/upload', require('./presentation/routes/uploadRoutes'));
 app.use('/api/mjpeg', require('./presentation/routes/mjpegRoutes'));
 
 setupWSStream(server);
+initWhatsApp();
 
 // Serve Frontend in production
 const frontendDist = path.join(__dirname, '../frontend/dist');

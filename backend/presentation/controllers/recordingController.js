@@ -1,3 +1,4 @@
+const fs = require('fs');
 const UploadRecordingUseCase = require('../../usecases/recording/UploadRecordingUseCase');
 const GetRecordingsUseCase = require('../../usecases/recording/GetRecordingsUseCase');
 const DeleteRecordingUseCase = require('../../usecases/recording/DeleteRecordingUseCase');
@@ -88,8 +89,9 @@ async function analyzeVideoInBackground(recording) {
 
                 if (response.ok) {
                     const result = await response.json();
+                    result.batchIndex = Math.floor(i / BATCH_SIZE);
                     results.push(result);
-                    console.log(`[AI Recording] Batch ${Math.floor(i/BATCH_SIZE)+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
+                    console.log(`[AI Recording] Batch ${result.batchIndex+1}: score=${result.anomaly_score?.toFixed(3)} class=${result.predicted_class}`);
                 }
             } catch (err) {
                 console.error(`[AI Recording] Batch error: ${err.message}`);
@@ -99,7 +101,7 @@ async function analyzeVideoInBackground(recording) {
         if (results.length > 0) {
             const worstResult = results.reduce((max, r) => r.anomaly_score > max.anomaly_score ? r : max);
 
-            if (worstResult.is_anomaly) {
+            if (worstResult.anomaly_score > 0.05) {
                 const EventModel = require('../../infrastructure/models/EventModel');
                 await EventModel.create({
                     cameraId: recording.cameraId,
@@ -108,8 +110,66 @@ async function analyzeVideoInBackground(recording) {
                     description: `Anomaly in recording "${recording.originalName}": ${worstResult.predicted_class} (score: ${worstResult.anomaly_score.toFixed(2)})`,
                     anomalyScore: worstResult.anomaly_score,
                     confidence: worstResult.class_confidence,
+                    recordingId: recording._id,
+                    recordingPath: recording.path,
+                    recordingName: recording.originalName,
+                    clipStartTime: Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2),
                 });
                 console.log(`[AI Recording] Event saved: ${worstResult.predicted_class}`);
+
+                try {
+                    const { sendAnomalyAlert, sendMediaAlert } = require('../../infrastructure/whatsappService');
+                    const CameraModel = require('../../infrastructure/models/CameraModel');
+                    const camera = await CameraModel.findById(recording.cameraId);
+                    const alertPhone = process.env.ALERT_PHONE_NUMBER;
+
+                    if (alertPhone) {
+                        const alertSent = await sendAnomalyAlert(alertPhone, {
+                            type: worstResult.predicted_class,
+                            cameraName: camera?.name || 'Unknown',
+                            predictedClass: worstResult.predicted_class,
+                            anomalyScore: worstResult.anomaly_score,
+                        });
+                        console.log(alertSent ? '[AI Recording] WhatsApp alert sent' : '[AI Recording] WhatsApp alert FAILED (client not ready?)');
+
+                        // Extract and send a short clip around the anomaly
+                        try {
+                            const { execFile } = require('child_process');
+                            const path = require('path');
+                            const os = require('os');
+                            const util = require('util');
+                            const execFileAsync = util.promisify(execFile);
+
+                            const clipStart = Math.max(0, (worstResult.batchIndex || 0) * BATCH_SIZE - 2);
+                            const clipDuration = 10; // seconds
+                            const outputPath = path.join(os.tmpdir(), `clip_${recording._id}_${Date.now()}.mp4`);
+
+                            await execFileAsync('ffmpeg', [
+                                '-ss', String(clipStart),
+                                '-i', recording.path,
+                                '-t', String(clipDuration),
+                                '-c', 'copy',
+                                '-y',
+                                outputPath
+                            ]);
+
+                            const clipSent = await sendMediaAlert(
+                                alertPhone,
+                                outputPath,
+                                `🎥 Clip: ${worstResult.predicted_class} - ${camera?.name || 'Unknown'}`
+                            );
+                            console.log(clipSent ? '[AI Recording] WhatsApp clip sent' : '[AI Recording] WhatsApp clip FAILED (client not ready?)');
+
+                            fs.unlink(outputPath, () => {});
+                        } catch (clipErr) {
+                            console.error('[AI Recording] Clip extraction/send error:', clipErr.message);
+                        }
+                    } else {
+                        console.log('[AI Recording] ALERT_PHONE_NUMBER not set, skipping WhatsApp alert');
+                    }
+                } catch (err) {
+                    console.error('[AI Recording] WhatsApp alert error:', err.message);
+                }
             } else {
                 console.log(`[AI Recording] Normal - score: ${worstResult.anomaly_score.toFixed(3)}`);
             }
@@ -154,14 +214,14 @@ async function extractFramesFromVideo(videoPath) {
             inputPath = tempVideo;
         }
 
-        execSync(`ffmpeg -i "${inputPath}" -vf "fps=1,scale=224:224" -q:v 2 "${tempDir}/frame_%04d.jpg" -y 2>/dev/null`, {
+        execSync(`ffmpeg -i "${inputPath}" -vf "fps=8,scale=224:224" -q:v 2 "${tempDir}/frame_%04d.jpg" -y 2>/dev/null`, {
             timeout: 60000
         });
 
         const files = fs.readdirSync(tempDir)
             .filter(f => f.endsWith('.jpg'))
             .sort()
-            .slice(0, 64);
+            .slice(0, 128);
 
         for (const file of files) {
             const filePath = path.join(tempDir, file);
