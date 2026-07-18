@@ -36,3 +36,5 @@ coverage/
 # Package lock (optional - remove if you want to keep it)
 # package-lock.json
 backend/uploads/
+.node_modules/
+node_modules/

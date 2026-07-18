@@ -26,3 +26,18 @@ exports.getRecentEvents = async (req, res) => {
         res.status(err.status || 500).json({ message: err.message || 'Server error' });
     }
 };
+
+exports.acknowledgeEvent = async (req, res) => {
+    try {
+        const EventModel = require('../../infrastructure/models/EventModel');
+        const event = await EventModel.findByIdAndUpdate(
+            req.params.id,
+            { acknowledged: true },
+            { new: true }
+        );
+        if (!event) return res.status(404).json({ message: 'Event not found' });
+        res.status(200).json({ message: 'Event acknowledged', event });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};

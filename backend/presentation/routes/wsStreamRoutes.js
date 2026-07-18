@@ -1,7 +1,7 @@
 const { WebSocketServer } = require('ws');
 const jwt = require('jsonwebtoken');
 const CameraModel = require('../../infrastructure/models/CameraModel');
-const { startWSStream } = require('../../infrastructure/wsStreamService');
+const { startWSStream } = require('../../services/wsStreamService');
 
 const setupWSStream = (server) => {
   const wss = new WebSocketServer({ 

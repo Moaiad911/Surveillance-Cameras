@@ -9,7 +9,6 @@ const connectDB = require('./infrastructure/database/mongoose');
 const { setupWSStream } = require('./presentation/routes/wsStreamRoutes');
 
 dotenv.config();
-
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
@@ -33,10 +32,15 @@ app.use('/api/mjpeg', require('./presentation/routes/mjpegRoutes'));
 
 setupWSStream(server);
 
-app.get('/', (req, res) => res.send('Surveillance Cameras API is running'));
+// Serve Frontend in production
+const frontendDist = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendDist));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDist, 'index.html'));
+});
 
 server.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📚 Swagger UI available at http://localhost:${PORT}/api-docs`);
-    console.log(`🎥 WebSocket Stream at ws://localhost:${PORT}/ws/stream`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📚 Swagger UI available at http://localhost:${PORT}/api-docs`);
+  console.log(`🎥 WebSocket Stream at ws://localhost:${PORT}/ws/stream`);
 });

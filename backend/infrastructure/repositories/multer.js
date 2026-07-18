@@ -14,9 +14,17 @@ const storage = new CloudinaryStorage({
     folder: 'surveillance-recordings',
     resource_type: 'video',
     allowed_formats: ['mp4', 'avi', 'mkv', 'mov'],
+    // السر هنا: تقسيم الفيديو لأجزاء (Chunks) بحجم 6 ميجا عشان الرفع ميفصلش
+    chunk_size: 6000000, 
   },
 });
 
-const upload = multer({ storage });
+// إضافة حد أقصى لحجم الفيديو (مثلاً 100 ميجابايت)
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 1000 * 1024 * 1024, // 100 MB (تقدر تزودها لو حسابك في Cloudinary يسمح)
+  }
+});
 
 module.exports = { upload, cloudinary };

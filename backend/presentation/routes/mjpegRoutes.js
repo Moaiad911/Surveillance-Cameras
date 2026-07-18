@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { startMJPEG, stopMJPEG } = require('../../infrastructure/mjpegService');
+const { startMJPEG, stopMJPEG } = require('../../infrastructure/repositories/mjpegService');
 const CameraModel = require('../../infrastructure/models/CameraModel');
 const jwt = require('jsonwebtoken');
 
